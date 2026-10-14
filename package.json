@@ -1,0 +1,36 @@
+{
+  "name": "triad",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "engine": "tsx src/main.ts",
+    "keygen": "tsx scripts/keygen.ts",
+    "launch": "tsx scripts/launch.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@pump-fun/pump-sdk": "^4.1.0",
+    "@pump-fun/pump-swap-sdk": "^2.1.0",
+    "@solana/spl-token": "^0.4.9",
+    "@solana/web3.js": "^1.99.0",
+    "bn.js": "^5.2.1",
+    "bs58": "^4.0.1",
+    "dotenv": "^16.4.5",
+    "postgres": "^3.4.5"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.9",
+    "@electric-sql/pglite-socket": "^0.2.12",
+    "@types/bn.js": "^5.1.6",
+    "@types/node": "^22.10.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.8"
+  },
+  "private": true
+}

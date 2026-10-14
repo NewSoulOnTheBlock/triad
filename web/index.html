@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Triad Engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0b0d10; --panel: #12161b; --panel2: #171c22; --line: #1f262e; --text: #e6edf3; --dim: #8b98a5;
+    --green: #3ddc84; --red: #ff5c6c; --gold: #f5c542; --blue: #5aa9ff; --on-gold: #1a1400;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f6f7f9; --panel: #fff; --panel2: #f1f3f6; --line: #e3e7ec; --text: #12161b; --dim: #5b6773;
+      --green: #12925a; --red: #d03247; --gold: #a87b00; --blue: #1f6fd1; --on-gold: #fff;
+    }
+  }
+  :root[data-theme="dark"] { --bg: #0b0d10; --panel: #12161b; --panel2: #171c22; --line: #1f262e; --text: #e6edf3; --dim: #8b98a5; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 Inter, system-ui, sans-serif; }
+  .wrap { max-width: 1320px; margin: 0 auto; padding: 20px 16px 60px; }
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-bottom: 14px; }
+  h1 { font-size: 22px; font-weight: 800; margin: 0 6px 0 0; letter-spacing: -.02em; }
+  .pill { font: 600 11px "JetBrains Mono", monospace; padding: 3px 8px; border-radius: 99px; border: 1px solid var(--line); color: var(--dim); white-space: nowrap; }
+  .pill.dry { color: var(--gold); border-color: var(--gold); }
+  .pill.live { color: var(--green); border-color: var(--green); }
+  .pill.bad { color: var(--red); border-color: var(--red); }
+  .banner { border: 1px solid var(--gold); color: var(--gold); border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; font-size: 13px; display: none; }
+  .banner.bad { border-color: var(--red); color: var(--red); }
+  .mono { font-family: "JetBrains Mono", monospace; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 14px; }
+  .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; min-width: 0; }
+  .stat .k { color: var(--dim); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+  .stat .v { font: 600 20px "JetBrains Mono", monospace; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; }
+  .stat .s { color: var(--dim); font-size: 12px; margin-top: 2px; }
+  .bar { height: 6px; background: var(--line); border-radius: 3px; margin-top: 8px; overflow: hidden; }
+  .bar > i { display: block; height: 100%; background: var(--gold); transition: width .4s; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 14px; }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; }
+  section h2 { font-size: 15px; margin: 0 0 2px; display: flex; gap: 8px; align-items: center; }
+  section h3 { font-size: 12px; margin: 16px 0 6px; color: var(--dim); text-transform: uppercase; letter-spacing: .06em; }
+  section h2 .n { font: 600 11px "JetBrains Mono", monospace; color: var(--bg); background: var(--text); border-radius: 4px; padding: 1px 6px; }
+  section p.sub { color: var(--dim); margin: 0 0 12px; font-size: 12.5px; }
+  .tbl { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .tbl th { text-align: left; color: var(--dim); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; padding: 6px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--panel); }
+  .tbl td { padding: 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .tbl td.r, .tbl th.r { text-align: right; }
+  .tbl td.wrap { white-space: normal; color: var(--dim); }
+  .scroll { max-height: 420px; overflow: auto; }
+  .tag { font: 600 10px "JetBrains Mono", monospace; padding: 1px 5px; border-radius: 3px; }
+  .tag.win { background: var(--gold); color: var(--on-gold); }
+  .tag.dev { background: var(--blue); color: #fff; }
+  .tag.buy { background: var(--green); color: #000; }
+  .tag.sell { background: var(--red); color: #fff; }
+  .tag.q { border: 1px solid var(--gold); color: var(--gold); }
+  .tag.ok { border: 1px solid var(--green); color: var(--green); }
+  .tag.fail { border: 1px solid var(--red); color: var(--red); }
+  a { color: inherit; text-decoration: none; border-bottom: 1px dotted var(--dim); }
+  a:hover { border-bottom-color: var(--text); }
+  .kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 12.5px; margin-bottom: 12px; }
+  .kv dt { color: var(--dim); } .kv dd { margin: 0; font-family: "JetBrains Mono", monospace; min-width: 0; overflow-wrap: anywhere; }
+  svg.spark { width: 100%; height: 72px; display: block; margin-bottom: 10px; background: var(--panel2); border-radius: 6px; }
+  .empty { color: var(--dim); text-align: center; padding: 18px; font-size: 12.5px; }
+  footer { margin-top: 18px; color: var(--dim); font-size: 12px; display: flex; flex-wrap: wrap; gap: 6px 16px; }
+  @media (max-width: 460px) { .grid { grid-template-columns: 1fr; } .stat .v { font-size: 17px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Triad Engine</h1>
+    <span id="mode" class="pill">connecting…</span>
+    <span class="pill" id="mint">—</span>
+    <span class="pill" id="updated">—</span>
+    <span class="pill" id="queue" style="display:none"></span>
+  </header>
+  <div class="banner" id="banner"></div>
+
+  <div class="stats">
+    <div class="stat"><div class="k">Market cap</div><div class="v" id="mcap">—</div><div class="s" id="venue">—</div></div>
+    <div class="stat"><div class="k">Next milestone</div><div class="v" id="next">—</div><div class="bar"><i id="nextbar" style="width:0"></i></div></div>
+    <div class="stat"><div class="k">1 · Prize pot</div><div class="v" id="pot">—</div><div class="s">$PUMP · paid out at each milestone</div></div>
+    <div class="stat"><div class="k">2 · Bot bucket</div><div class="v" id="botq">—</div><div class="s" id="bott">—</div></div>
+    <div class="stat"><div class="k">3 · Airdrop bucket</div><div class="v" id="adq">—</div><div class="s" id="adnext">—</div></div>
+  </div>
+
+  <div class="grid">
+    <section>
+      <h2><span class="n">1</span> Longest holders</h2>
+      <p class="sub" id="ladderSub">—</p>
+      <div class="scroll"><table class="tbl"><thead><tr><th>#</th><th>Wallet</th><th class="r">Held</th><th class="r">Balance</th><th></th></tr></thead><tbody id="longest"></tbody></table></div>
+      <h3>Milestone payouts</h3>
+      <div class="scroll" style="max-height:240px"><table class="tbl"><thead><tr><th>Level</th><th>Winners</th><th class="r">Pot</th><th>Status</th><th class="r">When</th></tr></thead><tbody id="milestones"></tbody></table></div>
+    </section>
+
+    <section>
+      <h2><span class="n">2</span> Dip / top bot</h2>
+      <p class="sub" id="botSub">—</p>
+      <svg class="spark" id="spark" viewBox="0 0 300 72" preserveAspectRatio="none" role="img" aria-label="24h price"></svg>
+      <dl class="kv" id="botkv"></dl>
+      <h3>Buys &amp; sells</h3>
+      <div class="scroll"><table class="tbl"><thead><tr><th>Side</th><th class="r">$PUMP</th><th class="r">Tokens</th><th class="r">Price</th><th>Why</th><th class="r">When</th></tr></thead><tbody id="trades"></tbody></table></div>
+    </section>
+
+    <section>
+      <h2><span class="n">3</span> Airdrop-eligible holders</h2>
+      <p class="sub" id="adSub">—</p>
+      <div class="scroll"><table class="tbl"><thead><tr><th>Wallet</th><th class="r">Held</th><th class="r">Balance</th><th class="r">Share</th></tr></thead><tbody id="eligible"></tbody></table></div>
+      <h3>Airdrop rounds</h3>
+      <div class="scroll" style="max-height:220px"><table class="tbl"><thead><tr><th>#</th><th class="r">$PUMP in</th><th class="r">Tokens out</th><th>Delivered</th><th class="r">When</th></tr></thead><tbody id="airdrops"></tbody></table></div>
+    </section>
+  </div>
+
+  <footer id="wallets"></footer>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const short = (a) => (a ? `${a.slice(0, 4)}…${a.slice(-4)}` : "—");
+const acct = (a) => (a ? `<a class="mono" href="https://solscan.io/account/${esc(a)}" target="_blank" rel="noopener">${short(a)}</a>` : "—");
+const txl = (s, label) => (s ? `<a href="https://solscan.io/tx/${esc(s)}" target="_blank" rel="noopener">${label}</a>` : label);
+const units = (raw) => Number(raw ?? 0) / 1e6;
+const fmt = (n, d = 2) => {
+  const a = Math.abs(n);
+  return a >= 1e9 ? (n / 1e9).toFixed(d) + "B" : a >= 1e6 ? (n / 1e6).toFixed(d) + "M" : a >= 1e3 ? (n / 1e3).toFixed(d) + "K" : n.toFixed(a > 0 && a < 1 ? 4 : d);
+};
+const usd = (n) => "$" + fmt(n || 0);
+const usdLevel = (n) => "$" + (n >= 1e6 ? +(n / 1e6).toFixed(2) + "M" : +(n / 1e3).toFixed(1) + "K"); // $25K, $1.25M
+const dur = (ms) => { const s = Math.max(0, ms / 1000); return s < 60 ? `${s | 0}s` : s < 3600 ? `${(s / 60) | 0}m` : s < 86400 ? `${(s / 3600).toFixed(1)}h` : `${(s / 86400).toFixed(1)}d`; };
+const ago = (t) => dur(Date.now() - new Date(t).getTime());
+const empty = (cols, msg) => `<tr><td colspan="${cols}" class="empty">${msg}</td></tr>`;
+const px = (p) => (p ? Number(p).toPrecision(4) : "—");
+
+function spark(points, dipLine, sellLine) {
+  const svg = $("spark");
+  if (points.length < 2) { svg.innerHTML = `<text x="150" y="40" text-anchor="middle" fill="var(--dim)" font-size="10">collecting price history…</text>`; return; }
+  const ys = points.map((p) => p.price).concat([dipLine, sellLine].filter(Boolean));
+  const lo = Math.min(...ys), hi = Math.max(...ys), span = hi - lo || hi || 1;
+  const y = (v) => 68 - ((v - lo) / span) * 64;
+  const d = points.map((p, i) => `${((i / (points.length - 1)) * 300).toFixed(1)},${y(p.price).toFixed(1)}`).join(" ");
+  const guide = (v, color) => (v ? `<line x1="0" x2="300" y1="${y(v)}" y2="${y(v)}" stroke="${color}" stroke-dasharray="3 3" stroke-width="1" vector-effect="non-scaling-stroke"/>` : "");
+  svg.innerHTML = guide(dipLine, "var(--green)") + guide(sellLine, "var(--red)") +
+    `<polyline points="${d}" fill="none" stroke="var(--blue)" stroke-width="1.6" vector-effect="non-scaling-stroke"/>`;
+}
+
+async function load() {
+  let s;
+  try {
+    const r = await fetch("/api/state", { cache: "no-store" });
+    if (!r.ok) throw new Error(r.status);
+    s = await r.json();
+  } catch {
+    $("mode").textContent = "offline"; $("mode").className = "pill bad";
+    return;
+  }
+  const o = s.overview || {};
+  const stale = !o.at || Date.now() - o.at > 3 * 60_000;
+  $("mode").textContent = o.dryRun ? "DRY RUN" : "LIVE";
+  $("mode").className = "pill " + (o.dryRun ? "dry" : "live");
+  $("mint").innerHTML = o.mint ? acct(o.mint) : "—";
+  $("updated").textContent = o.at ? `updated ${ago(o.at)} ago` : "waiting for first tick";
+  $("updated").className = "pill" + (stale && o.at ? " bad" : "");
+  $("queue").style.display = o.pendingPayouts ? "" : "none";
+  $("queue").textContent = `${o.pendingPayouts} payouts in flight`;
+
+  const lowGas = Object.entries(o.wallets || {}).filter(([, w]) => w.low);
+  const banner = $("banner");
+  if (lowGas.length) {
+    banner.className = "banner bad"; banner.style.display = "block";
+    banner.textContent = `Low SOL: ${lowGas.map(([n, w]) => `${n} ${short(w.address)}`).join(", ")}. Those buckets are paused until topped up.`;
+  } else if (o.dryRun) {
+    banner.className = "banner"; banner.style.display = "block";
+    banner.textContent = "Dry run: the engine is reading the chain and making every decision, but sending nothing. Nothing on this page has moved real funds.";
+  } else banner.style.display = "none";
+
+  // headline
+  const m = o.market || {};
+  const step = o.stepUsd || 25000, next = o.nextMilestoneUsd || step, prev = next - step;
+  $("mcap").textContent = usd(m.mcapUsd);
+  $("venue").textContent = m.venue ? `${m.venue === "pool" ? "PumpSwap pool" : "bonding curve"} · $PUMP $${(m.quoteUsd || 0).toFixed(5)}` : "—";
+  $("next").textContent = usdLevel(next);
+  $("nextbar").style.width = Math.max(0, Math.min(100, (((m.mcapUsd || 0) - prev) / step) * 100)) + "%";
+  $("pot").textContent = fmt(units(o.prize?.pot));
+  $("botq").textContent = fmt(units(o.bot?.quote));
+  $("bott").textContent = `$PUMP ready · ${fmt(units(o.bot?.tokens))} tokens held`;
+  $("adq").textContent = fmt(units(o.airdrop?.quote));
+  const firstRound = (o.launchTime || 0) + (o.airdrop?.minAgeMs || 3_600_000);
+  $("adnext").textContent = Date.now() < firstRound
+    ? `accruing · first round in ${dur(firstRound - Date.now())}`
+    : o.airdrop?.lastAt ? `last round ${ago(o.airdrop.lastAt)} ago · every ${dur(o.airdrop.everyMs)}` : `$PUMP ready · rounds every ${dur(o.airdrop?.everyMs || 0)}`;
+
+  // 1 — longest holders
+  const L = o.prize?.ladder || {};
+  const minHold = fmt(units(o.prize?.minBalance));
+  $("ladderSub").innerHTML = `Ranked by how long each wallet has held at least <b>${minHold}</b> tokens without selling or sending any out. Dev and engine wallets are excluded. ` +
+    `${s.qualifiedCount} wallets qualify. If ${usdLevel(next)} confirmed now, the <b>top ${s.nextRoundSize || 1}</b> would split the pot` +
+    (L.size ? ` (the current #1 has won ${L.size} round${L.size > 1 ? "s" : ""} running).` : ".") +
+    ` A milestone counts once the market cap has held it for ${o.prize?.confirmSamples || 1} ticks in a row.`;
+  $("longest").innerHTML = s.longest.length ? s.longest.map((h) =>
+    `<tr><td>${h.rank}</td><td>${acct(h.owner)}</td><td class="r">${h.since ? ago(h.since) : "—"}</td><td class="r mono">${fmt(units(h.balance))}</td><td>${h.nextRoundWinner ? '<span class="tag win">IN LINE</span>' : ""}</td></tr>`).join("")
+    : empty(5, `No wallet has held ${minHold}+ tokens yet`);
+  $("milestones").innerHTML = s.milestones.length ? s.milestones.map((x) => {
+    const n = x.winners.length, done = x.delivered >= n;
+    return `<tr><td>${usdLevel(x.level * step)}</td><td>${x.winners.map((w) => acct(w.owner)).join(" ")}</td><td class="r mono">${fmt(units(x.pot))}</td>` +
+      `<td>${done ? txl(x.sig, '<span class="tag ok">PAID</span>') : `<span class="tag q">QUEUED ${x.delivered}/${n}</span>`}</td><td class="r">${ago(x.ts)}</td></tr>`;
+  }).join("") : empty(5, `No milestone reached yet. First is ${usdLevel(step)}.`);
+
+  // 2 — bot
+  const b = o.bot || {}, dec = b.lastDecision;
+  const high = Math.max(0, ...s.prices.map((p) => p.price));
+  const dipLine = high ? high * (1 - (b.dipPct || 0)) : null;
+  spark(s.prices, dipLine, b.nextSellAt);
+  $("botSub").textContent = `Buys with the whole bucket when price falls ${Math.round((b.dipPct || 0) * 100)}% under its 24h high (green line). ` +
+    `Sells half its bag each time price clears the next rung, +${Math.round((b.topStepPct || 0) * 100)}% steps over its average entry (red line).`;
+  $("botkv").innerHTML = `
+    <dt>Wallet</dt><dd>${acct(o.wallets?.botWallet?.address)}</dd>
+    <dt>Average entry</dt><dd>${b.avgEntry ? px(b.avgEntry) + " $PUMP" : "no position"}</dd>
+    <dt>Buy below</dt><dd>${dipLine ? px(dipLine) : "—"}</dd>
+    <dt>Next sell rung</dt><dd>${b.nextSellAt ? `${px(b.nextSellAt)} (rung ${b.ladderStep + 1})` : "—"}</dd>
+    <dt>Last check</dt><dd>${dec ? `${esc(dec.action.toUpperCase())}: ${esc(dec.reason)} · ${ago(dec.at)} ago` : "—"}</dd>`;
+  $("trades").innerHTML = s.trades.length ? s.trades.map((t) => {
+    const st = t.status === "failed" ? ' <span class="tag fail">FAILED</span>' : t.status === "sent" ? ' <span class="tag q">PENDING</span>' : "";
+    return `<tr><td><span class="tag ${t.side}">${t.side.toUpperCase()}</span>${st}</td><td class="r mono">${fmt(units(t.quote))}</td><td class="r mono">${fmt(units(t.tokens))}</td><td class="r mono">${px(t.price)}</td><td class="wrap">${esc(t.reason)}</td><td class="r">${txl(t.sig, ago(t.ts))}</td></tr>`;
+  }).join("") : empty(6, "No trades yet");
+
+  // 3 — airdrop
+  $("adSub").innerHTML = `Every wallet holding for 1h+ without selling, <b>dev included</b>, engine wallets excluded. ` +
+    `${s.airdropEligibleCount} eligible now, ${s.airdropPendingCount} still under the hour. Each round buys back with the whole bucket and splits pro-rata by balance.`;
+  $("eligible").innerHTML = s.airdropEligible.length ? s.airdropEligible.map((h) =>
+    `<tr><td>${acct(h.owner)} ${h.isDev ? '<span class="tag dev">DEV</span>' : ""}</td><td class="r">${ago(h.since)}</td><td class="r mono">${fmt(units(h.balance))}</td><td class="r mono">${h.sharePct.toFixed(2)}%</td></tr>`).join("")
+    : empty(4, "Nobody past the 1h mark yet. The bucket is accruing.");
+  $("airdrops").innerHTML = s.airdrops.length ? s.airdrops.map((a) => {
+    const done = a.delivered >= a.recipients;
+    return `<tr><td>${a.id}</td><td class="r mono">${txl(a.buy_sig, fmt(units(a.quote_spent)))}</td><td class="r mono">${fmt(units(a.tokens))}</td>` +
+      `<td><span class="tag ${done ? "ok" : "q"}">${a.delivered}/${a.recipients}</span></td><td class="r">${ago(a.ts)}</td></tr>`;
+  }).join("") : empty(5, "No rounds yet");
+
+  // footer: wallets + gas
+  const names = { treasury: "Treasury (creator · prize pot)", botWallet: "Bot", airdropWallet: "Airdrop" };
+  $("wallets").innerHTML = Object.entries(o.wallets || {}).map(([k, w]) =>
+    `<span>${names[k] || k}: ${acct(w.address)} · ${w.sol === null ? "?" : (w.sol / 1e9).toFixed(3)} SOL${w.low ? " ⚠" : ""}</span>`).join("") +
+    (o.devWallet ? `<span>Dev: ${acct(o.devWallet)}</span>` : "");
+}
+
+load();
+setInterval(load, 10_000);
+</script>
+</body>
+</html>
