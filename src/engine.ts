@@ -111,7 +111,10 @@ export class Engine {
   // the claim's before/after delta means a crash right after a claim is
   // simply split on the next run, never lost or double counted.
   private async claim(state: db.State, now: number) {
-    if (now - state.lastClaimAt < this.cfg.claimEveryMs) return;
+    // Claims land on wall-clock slots (:00, :10, :20… for a 10-minute interval)
+    // rather than N minutes after the previous one. 0 means every tick.
+    const every = this.cfg.claimEveryMs;
+    if (every > 0 && Math.floor(now / every) <= Math.floor(state.lastClaimAt / every)) return;
     let sig: string | null = null;
     if (!this.cfg.dryRun) sig = await this.chain.submit(await this.chain.prepare(await this.chain.claimIxs(), this.cfg.treasury));
     state.lastClaimAt = now;
@@ -293,6 +296,7 @@ export class Engine {
       launchTime: this.cfg.launchTime,
       market,
       stepUsd: this.cfg.prize.stepUsd,
+      claimEveryMs: this.cfg.claimEveryMs,
       nextMilestoneUsd: (state.lastPaidLevel + 1) * this.cfg.prize.stepUsd,
       wallets,
       pendingPayouts: pending.n,

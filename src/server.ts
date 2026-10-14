@@ -13,6 +13,7 @@ export function serve(cfg: Config, sql: db.Sql) {
   const engine = new Set([cfg.treasury, cfg.botWallet, cfg.airdropWallet].map((k) => k.publicKey.toBase58()));
   const dev = cfg.devWallet.toBase58();
   const page = join(__dirname, "..", "web", "index.html");
+  const logo = join(__dirname, "..", "web", "logo.svg");
 
   async function state() {
     const now = Date.now();
@@ -75,6 +76,10 @@ export function serve(cfg: Config, sql: db.Sql) {
         const [ov] = await sql<{ v: any }[]>`select v from kv where k = 'overview'`;
         const fresh = !!ov && Date.now() - ov.v.at < cfg.tickMs * 5;
         return res.writeHead(fresh ? 200 : 503).end(fresh ? "ok" : "stale");
+      }
+      if (req.url === "/logo.svg") {
+        res.writeHead(200, { "content-type": "image/svg+xml", "cache-control": "public, max-age=86400" });
+        return res.end(await readFile(logo));
       }
       if (req.url === "/" || req.url === "/index.html") {
         res.writeHead(200, { "content-type": "text/html; charset=utf-8" });

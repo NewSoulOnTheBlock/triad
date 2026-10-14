@@ -3,147 +3,371 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Triad Engine</title>
+<title>Pump Engine</title>
+<meta name="description" content="Every trade pays a 3% $PUMP creator fee. The engine splits it three ways: a prize for the longest holder, a dip-buying bot, and an hourly airdrop." />
+<link rel="icon" type="image/svg+xml" href="/logo.svg" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Martian+Mono:wdth,wght@75..112.5,400..600&display=swap" rel="stylesheet" />
+<script>try { const t = localStorage.getItem("triad-theme"); if (t) document.documentElement.dataset.theme = t; } catch {}</script>
 <style>
   :root {
-    --bg: #0b0d10; --panel: #12161b; --panel2: #171c22; --line: #1f262e; --text: #e6edf3; --dim: #8b98a5;
-    --green: #3ddc84; --red: #ff5c6c; --gold: #f5c542; --blue: #5aa9ff; --on-gold: #1a1400;
+    --bg: #08090b; --panel: #101114; --line: #1d1f24; --line-2: #2b2e35;
+    --text: #f1f2f4; --dim: #8e919a; --faint: #5c6069; --danger: #f06b63;
+    --accent: #43e699; --on-accent: #04140c;
+    --shadow: rgba(0, 0, 0, .55);
+    --sans: Archivo, system-ui, -apple-system, sans-serif;
+    --mono: "Martian Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    color-scheme: dark;
   }
   @media (prefers-color-scheme: light) {
     :root:not([data-theme="dark"]) {
-      --bg: #f6f7f9; --panel: #fff; --panel2: #f1f3f6; --line: #e3e7ec; --text: #12161b; --dim: #5b6773;
-      --green: #12925a; --red: #d03247; --gold: #a87b00; --blue: #1f6fd1; --on-gold: #fff;
+      --bg: #f3f3f0; --panel: #fff; --line: #e4e3df; --line-2: #d3d2cc;
+      --text: #0b0d12; --dim: #5f626b; --faint: #9b9da4; --danger: #c93a32;
+      --accent: #12a564; --on-accent: #fff;
+      --shadow: rgba(20, 22, 28, .22);
+      color-scheme: light;
     }
   }
-  :root[data-theme="dark"] { --bg: #0b0d10; --panel: #12161b; --panel2: #171c22; --line: #1f262e; --text: #e6edf3; --dim: #8b98a5; }
+  :root[data-theme="light"] {
+    --bg: #f3f3f0; --panel: #fff; --line: #e4e3df; --line-2: #d3d2cc;
+    --text: #0b0d12; --dim: #5f626b; --faint: #9b9da4; --danger: #c93a32;
+    --accent: #12a564; --on-accent: #fff;
+    --shadow: rgba(20, 22, 28, .22);
+    color-scheme: light;
+  }
+
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 Inter, system-ui, sans-serif; }
-  .wrap { max-width: 1320px; margin: 0 auto; padding: 20px 16px 60px; }
-  header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-bottom: 14px; }
-  h1 { font-size: 22px; font-weight: 800; margin: 0 6px 0 0; letter-spacing: -.02em; }
-  .pill { font: 600 11px "JetBrains Mono", monospace; padding: 3px 8px; border-radius: 99px; border: 1px solid var(--line); color: var(--dim); white-space: nowrap; }
-  .pill.dry { color: var(--gold); border-color: var(--gold); }
-  .pill.live { color: var(--green); border-color: var(--green); }
-  .pill.bad { color: var(--red); border-color: var(--red); }
-  .banner { border: 1px solid var(--gold); color: var(--gold); border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; font-size: 13px; display: none; }
-  .banner.bad { border-color: var(--red); color: var(--red); }
-  .mono { font-family: "JetBrains Mono", monospace; }
-  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 14px; }
-  .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; min-width: 0; }
-  .stat .k { color: var(--dim); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
-  .stat .v { font: 600 20px "JetBrains Mono", monospace; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; }
-  .stat .s { color: var(--dim); font-size: 12px; margin-top: 2px; }
-  .bar { height: 6px; background: var(--line); border-radius: 3px; margin-top: 8px; overflow: hidden; }
-  .bar > i { display: block; height: 100%; background: var(--gold); transition: width .4s; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 14px; }
-  section { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; }
-  section h2 { font-size: 15px; margin: 0 0 2px; display: flex; gap: 8px; align-items: center; }
-  section h3 { font-size: 12px; margin: 16px 0 6px; color: var(--dim); text-transform: uppercase; letter-spacing: .06em; }
-  section h2 .n { font: 600 11px "JetBrains Mono", monospace; color: var(--bg); background: var(--text); border-radius: 4px; padding: 1px 6px; }
-  section p.sub { color: var(--dim); margin: 0 0 12px; font-size: 12.5px; }
-  .tbl { width: 100%; border-collapse: collapse; font-size: 12.5px; }
-  .tbl th { text-align: left; color: var(--dim); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; padding: 6px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--panel); }
-  .tbl td { padding: 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
-  .tbl td.r, .tbl th.r { text-align: right; }
-  .tbl td.wrap { white-space: normal; color: var(--dim); }
-  .scroll { max-height: 420px; overflow: auto; }
-  .tag { font: 600 10px "JetBrains Mono", monospace; padding: 1px 5px; border-radius: 3px; }
-  .tag.win { background: var(--gold); color: var(--on-gold); }
-  .tag.dev { background: var(--blue); color: #fff; }
-  .tag.buy { background: var(--green); color: #000; }
-  .tag.sell { background: var(--red); color: #fff; }
-  .tag.q { border: 1px solid var(--gold); color: var(--gold); }
-  .tag.ok { border: 1px solid var(--green); color: var(--green); }
-  .tag.fail { border: 1px solid var(--red); color: var(--red); }
-  a { color: inherit; text-decoration: none; border-bottom: 1px dotted var(--dim); }
-  a:hover { border-bottom-color: var(--text); }
-  .kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 12.5px; margin-bottom: 12px; }
-  .kv dt { color: var(--dim); } .kv dd { margin: 0; font-family: "JetBrains Mono", monospace; min-width: 0; overflow-wrap: anywhere; }
-  svg.spark { width: 100%; height: 72px; display: block; margin-bottom: 10px; background: var(--panel2); border-radius: 6px; }
-  .empty { color: var(--dim); text-align: center; padding: 18px; font-size: 12.5px; }
-  footer { margin-top: 18px; color: var(--dim); font-size: 12px; display: flex; flex-wrap: wrap; gap: 6px 16px; }
-  @media (max-width: 460px) { .grid { grid-template-columns: 1fr; } .stat .v { font-size: 17px; } }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 400 14px/1.5 var(--sans); -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
+  a { color: inherit; text-decoration: none; }
+  .wrap { max-width: 1320px; margin: 0 auto; padding: 22px 32px 72px; }
+  .muted { color: var(--dim); } .faint { color: var(--faint); } .bad { color: var(--danger); }
+  .mono, .addr { font-family: var(--mono); font-stretch: 87.5%; }
+  .addr { font-size: 12px; }
+  a.addr:hover, a.tx:hover { text-decoration: underline; text-decoration-color: var(--faint); text-underline-offset: 3px; }
+  a.tx { text-decoration: underline; text-decoration-color: var(--line-2); text-underline-offset: 3px; }
+  .label { font: 500 10px/1.2 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--faint); }
+
+  /* ---- masthead ---- */
+  .rail { display: flex; align-items: center; justify-content: space-between; gap: 12px 20px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+  .status { display: flex; flex-wrap: wrap; gap: 4px 0; font: 500 10.5px/1.4 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--dim); min-width: 0; }
+  .status > span + span::before { content: "/"; margin: 0 10px; color: var(--faint); }
+  .status .mode { color: var(--text); }
+  .rail-r { display: flex; align-items: center; gap: 8px; flex: none; }
+  .icon-btn { width: 32px; height: 32px; flex: none; display: grid; place-items: center; padding: 0; border-radius: 50%; border: 1px solid var(--line-2); background: transparent; color: var(--dim); cursor: pointer; transition: color .15s, border-color .15s; }
+  .icon-btn:hover { color: var(--text); border-color: var(--dim); }
+  .icon-btn svg { width: 14px; height: 14px; }
+
+  .mast { display: grid; grid-template-columns: 236px minmax(0, 1fr) 300px; align-items: center; gap: 44px; padding: 40px 0 44px; border-bottom: 1px solid var(--line); }
+  .sticker { width: 100%; height: auto; display: block; transform: rotate(-5deg); filter: drop-shadow(0 16px 24px var(--shadow)); transition: transform .5s cubic-bezier(.3, 1.6, .5, 1); }
+  .sticker:hover { transform: rotate(0deg) scale(1.03); }
+  .kicker { margin: 0 0 16px; font: 500 10.5px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--faint); }
+  .kicker b { color: var(--text); font-weight: 500; text-transform: none; }
+  .kicker i { font-style: normal; margin: 0 8px; }
+  h1 { margin: 0; font: 800 clamp(40px, 5.2vw, 70px)/.94 var(--sans); font-stretch: 118%; letter-spacing: -.035em; }
+  h1 em { font-style: normal; color: var(--accent); }
+  .lede { margin: 18px 0 0; max-width: 54ch; color: var(--dim); font-size: 15px; line-height: 1.55; }
+  .lede b { color: var(--text); font-weight: 600; }
+  .actions { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin-top: 26px; }
+  .btns { display: flex; flex-wrap: wrap; gap: 10px; }
+  .actions:empty { display: none; }
+  .cap { height: 42px; display: inline-flex; align-items: center; gap: 10px; border-radius: 999px; font: 700 13.5px/1 var(--sans); font-stretch: 108%; white-space: nowrap; }
+  .ca-copy { max-width: 100%; min-width: 0; padding: 0 5px 0 16px; border: 1px solid var(--line-2); background: var(--panel); color: var(--text); cursor: pointer; transition: border-color .15s; }
+  .ca-copy:hover { border-color: var(--dim); }
+  .ca-copy .label { color: var(--faint); }
+  .ca-copy .addr { font-size: 12.5px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; }
+  .ca-copy .short { display: none; }
+  .ca-copy .knob { width: 32px; height: 32px; flex: none; display: grid; place-items: center; border-radius: 50%; background: var(--line); color: var(--dim); transition: background .15s, color .15s; }
+  .ca-copy:hover .knob { color: var(--text); }
+  .ca-copy .knob svg { width: 14px; height: 14px; }
+  .ca-copy .ok { display: none; }
+  .ca-copy.done .knob { background: var(--accent); color: var(--on-accent); }
+  .ca-copy.done .ok { display: block; } .ca-copy.done .ic { display: none; }
+  .buy { padding: 0 20px; background: var(--accent); color: var(--on-accent); transition: transform .15s, filter .15s; }
+  .buy:hover { filter: brightness(1.06); transform: translateY(-1px); }
+  .ghost { padding: 0 18px; border: 1px solid var(--line-2); color: var(--text); transition: border-color .15s; }
+  .ghost:hover { border-color: var(--dim); }
+  .cap svg.arrow { width: 12px; height: 12px; }
+
+  .timers { display: grid; gap: 28px; padding-left: 34px; border-left: 1px solid var(--line); }
+  .t-top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; white-space: nowrap; }
+  .t-note { font: 400 10px/1 var(--mono); color: var(--faint); letter-spacing: .04em; }
+  .t-val { margin: 12px 0 14px; font: 500 46px/1 var(--mono); font-stretch: 87.5%; letter-spacing: -.04em; }
+  .cycle { --seg: 10; height: 7px; background: var(--line);
+    -webkit-mask: repeating-linear-gradient(90deg, #000 0 calc(100% / var(--seg) - 3px), transparent 0 calc(100% / var(--seg)));
+    mask: repeating-linear-gradient(90deg, #000 0 calc(100% / var(--seg) - 3px), transparent 0 calc(100% / var(--seg))); }
+  .cycle i { display: block; height: 100%; width: 0; background: var(--accent); }
+
+  /* ---- shared blocks ---- */
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; min-width: 0; }
+  .figure { margin: 16px 0 12px; font: 700 64px/1 var(--sans); font-stretch: 110%; letter-spacing: -.04em; }
+  .figure small { margin-left: 8px; font: 500 10.5px var(--mono); letter-spacing: .1em; color: var(--faint); vertical-align: middle; }
+  .meta { color: var(--dim); font-size: 13px; }
+  .meta > span + span::before { content: "·"; margin: 0 8px; color: var(--faint); }
+  .caption { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; margin: 52px 0 14px; }
+  .caption h2 { margin: 0; font: 800 26px/1 var(--sans); font-stretch: 115%; letter-spacing: -.03em; }
+  .caption p { margin: 0; font: 500 10.5px/1.4 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+
+  /* hero */
+  .hero { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); margin-top: 28px; overflow: hidden; }
+  .hero > div { padding: 28px 30px; min-width: 0; }
+  .hero > div + div { border-left: 1px solid var(--line); }
+  .mchart { display: block; width: 100%; height: 96px; margin-top: 26px; }
+  .hero .ms .figure { font-size: 52px; }
+  .track { height: 2px; margin-top: 30px; background: var(--line-2); border-radius: 2px; overflow: hidden; }
+  .track i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .6s ease; }
+  .scale { display: flex; justify-content: space-between; margin-top: 10px; font: 400 10.5px var(--mono); color: var(--faint); }
+  .scale b { font-weight: 500; color: var(--dim); }
+  .facts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 26px; padding-top: 20px; border-top: 1px solid var(--line); }
+  .facts b { display: block; font-weight: 700; font-size: 17px; font-stretch: 108%; }
+  .facts span { font-size: 12px; color: var(--dim); }
+
+  /* buckets */
+  .buckets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .bucket { padding: 24px 26px 26px; min-width: 0; }
+  .bucket + .bucket { border-left: 1px solid var(--line); }
+  .b-top { display: flex; justify-content: space-between; align-items: baseline; font-weight: 600; font-size: 14px; }
+  .num { margin-right: 10px; font: 500 10.5px var(--mono); color: var(--faint); letter-spacing: .06em; }
+  .bucket .figure { font-size: 42px; margin: 22px 0 10px; }
+
+  /* sections */
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); gap: 20px; align-items: start; }
+  section.panel { padding: 24px 24px 18px; }
+  .sec-h { display: flex; align-items: baseline; margin-bottom: 12px; }
+  .sec-h h2 { margin: 0; font: 800 21px/1.1 var(--sans); font-stretch: 112%; letter-spacing: -.025em; }
+  p.sub { color: var(--dim); font-size: 13px; line-height: 1.6; margin: 0 0 20px; }
+  p.sub b { color: var(--text); font-weight: 600; }
+  h3 { margin: 30px 0 6px; font: 500 10px/1.2 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--faint); }
+  /* tables */
+  .scroll { max-height: 420px; overflow: auto; scrollbar-width: thin; scrollbar-color: var(--line-2) transparent; }
+  .tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .tbl th { position: sticky; top: 0; z-index: 1; background: var(--panel); text-align: left; font: 500 9.5px/1.2 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); padding: 8px 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .tbl td { padding: 11px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .tbl th:first-child, .tbl td:first-child { padding-left: 0; }
+  .tbl th:last-child, .tbl td:last-child { padding-right: 0; }
+  .tbl tbody tr:last-child td { border-bottom: 0; }
+  .tbl .r { text-align: right; }
+  .tbl td.rank { color: var(--faint); width: 28px; }
+  .tbl tr.has-why td { border-bottom: 0; padding-bottom: 2px; }
+  .tbl tr.why td { padding-top: 0; color: var(--faint); font-size: 12px; white-space: normal; }
+  .tbl td.empty { padding: 36px 0; text-align: center; color: var(--faint); white-space: normal; }
+  .note { font-size: 11.5px; color: var(--faint); margin-left: 8px; }
+
+  /* bot */
+  .chart { position: relative; margin-bottom: 8px; }
+  svg.spark { display: block; width: 100%; height: 120px; }
+  .chart-ph { position: absolute; inset: 0; display: grid; place-items: center; color: var(--faint); font-size: 12.5px; border: 1px dashed var(--line-2); border-radius: 10px; }
+  .l-price { fill: none; stroke: var(--accent); stroke-width: 1.4; stroke-linejoin: round; }
+  .g-buy, .g-sell { stroke: var(--dim); stroke-width: 1; }
+  .g-buy { stroke-dasharray: 2 3; } .g-sell { stroke-dasharray: 7 4; }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 10px 0 14px; font: 400 10.5px var(--mono); color: var(--faint); }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .legend i { width: 18px; border-top: 1px solid var(--dim); }
+  .legend i.solid { border-top: 1.5px solid var(--accent); }
+  .legend i.dot { border-top-style: dotted; } .legend i.dash { border-top-style: dashed; }
+  .kv { margin: 0; }
+  .kv > div { display: flex; justify-content: space-between; align-items: baseline; gap: 20px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+  .kv dt { color: var(--dim); white-space: nowrap; }
+  .kv dd { margin: 0; text-align: right; min-width: 0; }
+
+  /* footer */
+  .wallets { padding: 4px 24px; }
+  .wrow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; align-items: center; gap: 4px 20px; padding: 15px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+  .wrow:last-child { border-bottom: 0; }
+  .wrow .role { display: block; font-size: 12px; color: var(--faint); }
+  .wrow .sol { text-align: right; color: var(--dim); }
+  .colophon { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; margin-top: 22px; font: 400 10.5px var(--mono); letter-spacing: .04em; color: var(--faint); }
+  .colophon a:hover { color: var(--accent); }
+
+  @media (max-width: 1100px) {
+    .mast { grid-template-columns: 200px minmax(0, 1fr); }
+    .timers { grid-column: 1 / -1; grid-template-columns: 1fr 1fr; gap: 40px; padding: 28px 0 0; border-left: 0; border-top: 1px solid var(--line); }
+  }
+  @media (max-width: 960px) {
+    .hero { grid-template-columns: 1fr; } .hero > div + div { border-left: 0; border-top: 1px solid var(--line); }
+    .buckets { grid-template-columns: 1fr; } .bucket + .bucket { border-left: 0; border-top: 1px solid var(--line); }
+  }
+  @media (max-width: 640px) {
+    .wrap { padding: 24px 16px 48px; }
+    .mast { grid-template-columns: 1fr; gap: 28px; padding: 28px 0 32px; text-align: left; }
+    .sticker { width: 168px; } .lede { font-size: 14px; }
+    .timers { grid-template-columns: 1fr 1fr; gap: 20px; } .t-val { font-size: 34px; }
+    .actions { align-items: stretch; } .btns { display: grid; grid-template-columns: 1fr 1fr; }
+    .ca-copy { justify-content: space-between; } .ca-copy .full { display: none; } .ca-copy .short { display: inline; }
+    .buy, .ghost { justify-content: center; } .t-note { display: none; }
+    .hero > div, .bucket { padding: 22px 20px; }
+    .figure { font-size: 52px; } .hero .ms .figure { font-size: 44px; } .bucket .figure { font-size: 38px; }
+    section.panel { padding: 20px 18px 14px; }
+    .wallets { padding: 4px 18px; }
+    .wrow { grid-template-columns: minmax(0, 1fr) auto; } .wrow .w-addr { grid-column: 1 / -1; order: 3; }
+  }
+  @media (max-width: 480px) { .hide-sm { display: none; } }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <h1>Triad Engine</h1>
-    <span id="mode" class="pill">connecting…</span>
-    <span class="pill" id="mint">—</span>
-    <span class="pill" id="updated">—</span>
-    <span class="pill" id="queue" style="display:none"></span>
-  </header>
-  <div class="banner" id="banner"></div>
-
-  <div class="stats">
-    <div class="stat"><div class="k">Market cap</div><div class="v" id="mcap">—</div><div class="s" id="venue">—</div></div>
-    <div class="stat"><div class="k">Next milestone</div><div class="v" id="next">—</div><div class="bar"><i id="nextbar" style="width:0"></i></div></div>
-    <div class="stat"><div class="k">1 · Prize pot</div><div class="v" id="pot">—</div><div class="s">$PUMP · paid out at each milestone</div></div>
-    <div class="stat"><div class="k">2 · Bot bucket</div><div class="v" id="botq">—</div><div class="s" id="bott">—</div></div>
-    <div class="stat"><div class="k">3 · Airdrop bucket</div><div class="v" id="adq">—</div><div class="s" id="adnext">—</div></div>
+  <div class="rail">
+    <div class="status" id="status"><span>Connecting…</span></div>
+    <div class="rail-r">
+      <a class="icon-btn" href="https://x.com/pumpenginePF" target="_blank" rel="noopener" aria-label="Pump Engine on X" title="@pumpenginePF on X">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
+      </a>
+      <button class="icon-btn" id="theme" type="button" aria-label="Toggle light/dark theme" title="Toggle theme">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9" /><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" /></svg>
+      </button>
+    </div>
   </div>
 
+  <header class="mast">
+    <img class="sticker" src="/logo.svg" width="236" height="204" alt="The Pump Engine" />
+    <div class="mast-copy">
+      <p class="kicker"><b>$pENGINE</b><i>/</i>Solana<i>/</i>pump.fun</p>
+      <h1>Every trade<br />feeds the <em>engine.</em></h1>
+      <p class="lede">A <b>3% creator fee</b> in $PUMP, split three ways: a prize for the longest holder, a bot that buys the dips, and an hourly airdrop to everyone holding 1h+.</p>
+      <div class="actions" id="actions"></div>
+    </div>
+    <div class="timers">
+      <div>
+        <div class="t-top"><span class="label">Next split</span><span class="t-note" id="tSplitNote"></span></div>
+        <div class="t-val" id="tSplit">--:--</div>
+        <div class="cycle" id="tSplitCycle"><i id="tSplitBar"></i></div>
+      </div>
+      <div>
+        <div class="t-top"><span class="label">Next airdrop</span><span class="t-note" id="tAirNote"></span></div>
+        <div class="t-val" id="tAir">--:--</div>
+        <div class="cycle" id="tAirCycle" style="--seg:12"><i id="tAirBar"></i></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="panel hero">
+    <div>
+      <div class="label">Market cap</div>
+      <div class="figure" id="mcap">—</div>
+      <div class="meta" id="mcapMeta"></div>
+      <svg class="mchart" id="mcapChart" viewBox="0 0 600 96" preserveAspectRatio="none" aria-hidden="true"></svg>
+    </div>
+    <div class="ms">
+      <div class="label">Next milestone</div>
+      <div class="figure" id="next">—</div>
+      <div class="meta" id="nextSub">—</div>
+      <div class="track"><i id="nextbar"></i></div>
+      <div class="scale"><span id="prevLvl">—</span><b id="nextPct">0%</b><span id="nextLvl">—</span></div>
+      <div class="facts">
+        <div><b id="msHit">—</b><span>milestones reached</span></div>
+        <div><b id="msSplit">—</b><span>would split the pot</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="caption"><h2>Fee buckets</h2><p>Every trade pays 3%. Each bucket gets 1%.</p></div>
+  <div class="panel buckets">
+    <div class="bucket">
+      <div class="b-top"><span><span class="num">01</span>Prize pot</span><span class="faint">1%</span></div>
+      <div class="figure"><span id="pot">—</span><small>$PUMP</small></div>
+      <div class="meta">Paid out at each milestone</div>
+    </div>
+    <div class="bucket">
+      <div class="b-top"><span><span class="num">02</span>Dip / top bot</span><span class="faint">1%</span></div>
+      <div class="figure"><span id="botq">—</span><small>$PUMP</small></div>
+      <div class="meta" id="bott">—</div>
+    </div>
+    <div class="bucket">
+      <div class="b-top"><span><span class="num">03</span>Holder airdrop</span><span class="faint">1%</span></div>
+      <div class="figure"><span id="adq">—</span><small>$PUMP</small></div>
+      <div class="meta" id="adnext">—</div>
+    </div>
+  </div>
+
+  <div class="caption"><h2>Activity</h2><p>Refreshes every 10 seconds.</p></div>
   <div class="grid">
-    <section>
-      <h2><span class="n">1</span> Longest holders</h2>
+    <section class="panel">
+      <div class="sec-h"><span class="num">01</span><h2>Longest holders</h2></div>
       <p class="sub" id="ladderSub">—</p>
-      <div class="scroll"><table class="tbl"><thead><tr><th>#</th><th>Wallet</th><th class="r">Held</th><th class="r">Balance</th><th></th></tr></thead><tbody id="longest"></tbody></table></div>
+      <div class="scroll"><table class="tbl"><thead><tr><th>#</th><th>Wallet</th><th class="r">Held</th><th class="r">Balance</th></tr></thead><tbody id="longest"></tbody></table></div>
       <h3>Milestone payouts</h3>
-      <div class="scroll" style="max-height:240px"><table class="tbl"><thead><tr><th>Level</th><th>Winners</th><th class="r">Pot</th><th>Status</th><th class="r">When</th></tr></thead><tbody id="milestones"></tbody></table></div>
+      <div class="scroll" style="max-height:240px"><table class="tbl"><thead><tr><th>Level</th><th>Winners</th><th class="r">Pot</th><th>Status</th><th class="r hide-sm">When</th></tr></thead><tbody id="milestones"></tbody></table></div>
     </section>
 
-    <section>
-      <h2><span class="n">2</span> Dip / top bot</h2>
+    <section class="panel">
+      <div class="sec-h"><span class="num">02</span><h2>Dip / top bot</h2></div>
       <p class="sub" id="botSub">—</p>
-      <svg class="spark" id="spark" viewBox="0 0 300 72" preserveAspectRatio="none" role="img" aria-label="24h price"></svg>
+      <div class="chart">
+        <svg class="spark" id="spark" viewBox="0 0 300 100" preserveAspectRatio="none" role="img" aria-label="24h price"></svg>
+        <div class="chart-ph" id="sparkPh">Collecting price history</div>
+      </div>
+      <div class="legend">
+        <span><i class="solid"></i>24h price</span>
+        <span><i class="dot"></i>Buy below</span>
+        <span><i class="dash"></i>Next sell</span>
+      </div>
       <dl class="kv" id="botkv"></dl>
       <h3>Buys &amp; sells</h3>
-      <div class="scroll"><table class="tbl"><thead><tr><th>Side</th><th class="r">$PUMP</th><th class="r">Tokens</th><th class="r">Price</th><th>Why</th><th class="r">When</th></tr></thead><tbody id="trades"></tbody></table></div>
+      <div class="scroll"><table class="tbl"><thead><tr><th>Side</th><th class="r">$PUMP</th><th class="r hide-sm">Tokens</th><th class="r">Price</th><th class="r">When</th></tr></thead><tbody id="trades"></tbody></table></div>
     </section>
 
-    <section>
-      <h2><span class="n">3</span> Airdrop-eligible holders</h2>
+    <section class="panel">
+      <div class="sec-h"><span class="num">03</span><h2>Airdrop-eligible holders</h2></div>
       <p class="sub" id="adSub">—</p>
-      <div class="scroll"><table class="tbl"><thead><tr><th>Wallet</th><th class="r">Held</th><th class="r">Balance</th><th class="r">Share</th></tr></thead><tbody id="eligible"></tbody></table></div>
+      <div class="scroll"><table class="tbl"><thead><tr><th>Wallet</th><th class="r hide-sm">Held</th><th class="r">Balance</th><th class="r">Share</th></tr></thead><tbody id="eligible"></tbody></table></div>
       <h3>Airdrop rounds</h3>
-      <div class="scroll" style="max-height:220px"><table class="tbl"><thead><tr><th>#</th><th class="r">$PUMP in</th><th class="r">Tokens out</th><th>Delivered</th><th class="r">When</th></tr></thead><tbody id="airdrops"></tbody></table></div>
+      <div class="scroll" style="max-height:220px"><table class="tbl"><thead><tr><th>#</th><th class="r">$PUMP in</th><th class="r">Tokens out</th><th class="r">Delivered</th><th class="r hide-sm">When</th></tr></thead><tbody id="airdrops"></tbody></table></div>
     </section>
   </div>
 
-  <footer id="wallets"></footer>
+  <footer>
+    <div class="caption"><h2>Engine wallets</h2><p>SOL on hand for transaction fees.</p></div>
+    <div class="panel wallets" id="wallets"></div>
+    <div class="colophon"><a href="https://x.com/pumpenginePF" target="_blank" rel="noopener">@pumpenginePF on X</a><span>Addresses and transactions open on Solscan</span></div>
+  </footer>
 </div>
 
 <script>
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const short = (a) => (a ? `${a.slice(0, 4)}…${a.slice(-4)}` : "—");
-const acct = (a) => (a ? `<a class="mono" href="https://solscan.io/account/${esc(a)}" target="_blank" rel="noopener">${short(a)}</a>` : "—");
-const txl = (s, label) => (s ? `<a href="https://solscan.io/tx/${esc(s)}" target="_blank" rel="noopener">${label}</a>` : label);
+const acct = (a) => (a ? `<a class="addr" href="https://solscan.io/account/${esc(a)}" target="_blank" rel="noopener">${short(a)}</a>` : "—");
+const txl = (s, label) => (s ? `<a class="tx" href="https://solscan.io/tx/${esc(s)}" target="_blank" rel="noopener">${label}</a>` : label);
 const units = (raw) => Number(raw ?? 0) / 1e6;
 const fmt = (n, d = 2) => {
   const a = Math.abs(n);
   return a >= 1e9 ? (n / 1e9).toFixed(d) + "B" : a >= 1e6 ? (n / 1e6).toFixed(d) + "M" : a >= 1e3 ? (n / 1e3).toFixed(d) + "K" : n.toFixed(a > 0 && a < 1 ? 4 : d);
 };
 const usd = (n) => "$" + fmt(n || 0);
-const usdLevel = (n) => "$" + (n >= 1e6 ? +(n / 1e6).toFixed(2) + "M" : +(n / 1e3).toFixed(1) + "K"); // $25K, $1.25M
+const usdLevel = (n) => (n ? "$" + (n >= 1e6 ? +(n / 1e6).toFixed(2) + "M" : +(n / 1e3).toFixed(1) + "K") : "$0"); // $25K, $1.25M
 const dur = (ms) => { const s = Math.max(0, ms / 1000); return s < 60 ? `${s | 0}s` : s < 3600 ? `${(s / 60) | 0}m` : s < 86400 ? `${(s / 3600).toFixed(1)}h` : `${(s / 86400).toFixed(1)}d`; };
 const ago = (t) => dur(Date.now() - new Date(t).getTime());
 const empty = (cols, msg) => `<tr><td colspan="${cols}" class="empty">${msg}</td></tr>`;
 const px = (p) => (p ? Number(p).toPrecision(4) : "—");
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
+function paths(vals, w, h, padTop, padBot, levels = []) {
+  const all = vals.concat(levels.filter(Boolean));
+  const lo = Math.min(...all), hi = Math.max(...all), span = hi - lo || hi || 1;
+  const y = (v) => h - padBot - ((v - lo) / span) * (h - padTop - padBot);
+  const line = vals.map((v, i) => `${i ? "L" : "M"}${((i / (vals.length - 1)) * w).toFixed(1)},${y(v).toFixed(1)}`).join("");
+  return { line, area: `${line}L${w},${h}L0,${h}Z`, y };
+}
+const fade = (id) => `<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--accent);stop-opacity:.12"/><stop offset="1" style="stop-color:var(--accent);stop-opacity:0"/></linearGradient></defs>`;
 
 function spark(points, dipLine, sellLine) {
   const svg = $("spark");
-  if (points.length < 2) { svg.innerHTML = `<text x="150" y="40" text-anchor="middle" fill="var(--dim)" font-size="10">collecting price history…</text>`; return; }
-  const ys = points.map((p) => p.price).concat([dipLine, sellLine].filter(Boolean));
-  const lo = Math.min(...ys), hi = Math.max(...ys), span = hi - lo || hi || 1;
-  const y = (v) => 68 - ((v - lo) / span) * 64;
-  const d = points.map((p, i) => `${((i / (points.length - 1)) * 300).toFixed(1)},${y(p.price).toFixed(1)}`).join(" ");
-  const guide = (v, color) => (v ? `<line x1="0" x2="300" y1="${y(v)}" y2="${y(v)}" stroke="${color}" stroke-dasharray="3 3" stroke-width="1" vector-effect="non-scaling-stroke"/>` : "");
-  svg.innerHTML = guide(dipLine, "var(--green)") + guide(sellLine, "var(--red)") +
-    `<polyline points="${d}" fill="none" stroke="var(--blue)" stroke-width="1.6" vector-effect="non-scaling-stroke"/>`;
+  $("sparkPh").style.display = points.length < 2 ? "" : "none";
+  if (points.length < 2) { svg.innerHTML = ""; return; }
+  const { line, area, y } = paths(points.map((p) => p.price), 300, 100, 8, 6, [dipLine, sellLine]);
+  const guide = (v, cls) => (v ? `<line x1="0" x2="300" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" class="${cls}" vector-effect="non-scaling-stroke"/>` : "");
+  svg.innerHTML = fade("sf") + `<path d="${area}" fill="url(#sf)"/>` + guide(dipLine, "g-buy") + guide(sellLine, "g-sell") +
+    `<path d="${line}" class="l-price" vector-effect="non-scaling-stroke"/>`;
+}
+
+function mcapChart(points) {
+  const vals = points.map((p) => p.mcap_usd).filter((v) => v > 0);
+  const svg = $("mcapChart");
+  svg.style.display = vals.length < 2 ? "none" : "";
+  if (vals.length < 2) { svg.innerHTML = ""; return null; }
+  const { line, area } = paths(vals, 600, 96, 4, 2);
+  svg.innerHTML = fade("mf") + `<path d="${area}" fill="url(#mf)"/><path d="${line}" class="l-price" vector-effect="non-scaling-stroke"/>`;
+  return (vals[vals.length - 1] / vals[0] - 1) * 100;
 }
 
 async function load() {
@@ -153,47 +377,67 @@ async function load() {
     if (!r.ok) throw new Error(r.status);
     s = await r.json();
   } catch {
-    $("mode").textContent = "offline"; $("mode").className = "pill bad";
+    $("status").innerHTML = `<span class="bad">Offline</span>`;
     return;
   }
   const o = s.overview || {};
   const stale = !o.at || Date.now() - o.at > 3 * 60_000;
-  $("mode").textContent = o.prelaunch ? "PRE-LAUNCH" : o.dryRun ? "DRY RUN" : "LIVE";
-  $("mode").className = "pill " + (o.dryRun ? "dry" : "live");
-  $("mint").innerHTML = o.mint ? acct(o.mint) : "—";
-  $("updated").textContent = o.at ? `updated ${ago(o.at)} ago` : "waiting for first tick";
-  $("updated").className = "pill" + (stale && o.at ? " bad" : "");
-  $("queue").style.display = o.pendingPayouts ? "" : "none";
-  $("queue").textContent = `${o.pendingPayouts} payouts in flight`;
+  const names = { treasury: "Treasury", botWallet: "Bot", airdropWallet: "Airdrop" };
 
+  // header status, as plain text
   const lowGas = Object.entries(o.wallets || {}).filter(([, w]) => w.low);
-  const banner = $("banner");
-  if (lowGas.length) {
-    banner.className = "banner bad"; banner.style.display = "block";
-    banner.textContent = `Low SOL: ${lowGas.map(([n, w]) => `${n} ${short(w.address)}`).join(", ")}. Those buckets are paused until topped up.`;
-  } else if (o.prelaunch) {
-    banner.className = "banner"; banner.style.display = "block";
-    banner.textContent = "Awaiting launch. The engine is up and the wallets below are ready; buckets start filling with the first trade.";
-  } else if (o.dryRun) {
-    banner.className = "banner"; banner.style.display = "block";
-    banner.textContent = "Dry run: the engine is reading the chain and making every decision, but sending nothing. Nothing on this page has moved real funds.";
-  } else banner.style.display = "none";
+  $("status").innerHTML = [
+    `<span class="mode">${o.prelaunch ? "Pre-launch" : o.dryRun ? "Dry run" : "Live"}</span>`,
+    `<span${stale && o.at ? ' class="bad"' : ""}>${o.at ? `Updated ${ago(o.at)} ago` : "Waiting for first tick"}</span>`,
+    o.pendingPayouts ? `<span>${o.pendingPayouts} payouts in flight</span>` : "",
+    ...lowGas.map(([n]) => `<span class="bad">${names[n] || n} wallet low on SOL</span>`),
+  ].join("");
+
+  // contract address capsule (click copies) + where to buy and chart it
+  ov = o;
+  tickTimers();
+  const act = $("actions");
+  if (o.mint && act.dataset.mint !== o.mint) {
+    act.dataset.mint = o.mint;
+    const m = esc(o.mint), arrow = `<svg class="arrow" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3.5 8.5l5-5M4.5 3.5h4v4"/></svg>`;
+    act.innerHTML = `<button class="cap ca-copy" type="button" data-copy="${m}" aria-label="Copy contract address" title="Copy contract address">` +
+      `<span class="label">CA</span><span class="addr"><span class="full">${m}</span><span class="short">${short(o.mint)}</span></span><span class="knob">` +
+      `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg>` +
+      `<svg class="ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></button>` +
+      `<div class="btns"><a class="cap buy" href="https://pump.fun/coin/${m}" target="_blank" rel="noopener">Buy on pump.fun ${arrow}</a>` +
+      `<a class="cap ghost" href="https://dexscreener.com/solana/${m}" target="_blank" rel="noopener">Chart ${arrow}</a></div>`;
+  } else if (!o.mint) { act.innerHTML = ""; delete act.dataset.mint; }
 
   // headline
   const m = o.market || {};
   const step = o.stepUsd || 25000, next = o.nextMilestoneUsd || step, prev = next - step;
-  $("mcap").textContent = usd(m.mcapUsd);
-  $("venue").textContent = m.venue ? `${m.venue === "pool" ? "PumpSwap pool" : "bonding curve"} · $PUMP $${(m.quoteUsd || 0).toFixed(5)}` : "—";
+  $("mcap").textContent = m.mcapUsd != null ? usd(m.mcapUsd) : "—";
+  const chg = mcapChart(s.prices);
+  $("mcapMeta").innerHTML = [
+    m.venue ? `<span>${m.venue === "pool" ? "PumpSwap pool" : "Bonding curve"}</span>` : `<span>Not trading yet</span>`,
+    m.venue ? `<span>$PUMP at $${(m.quoteUsd || 0).toFixed(5)}</span>` : "",
+    chg === null ? "" : `<span>${chg >= 0 ? "+" : "−"}${Math.abs(chg).toFixed(1)}% in 24h</span>`,
+  ].join("");
+
+  const pct = Math.max(0, Math.min(100, (((m.mcapUsd || 0) - prev) / step) * 100));
   $("next").textContent = usdLevel(next);
-  $("nextbar").style.width = Math.max(0, Math.min(100, (((m.mcapUsd || 0) - prev) / step) * 100)) + "%";
+  $("nextSub").textContent = m.mcapUsd ? `${usd(Math.max(0, next - m.mcapUsd))} to go` : `Counting from ${usdLevel(prev)}`;
+  $("nextbar").style.width = pct + "%";
+  $("prevLvl").textContent = usdLevel(prev);
+  $("nextLvl").textContent = usdLevel(next);
+  $("nextPct").textContent = `${Math.floor(pct)}%`;
+  $("msHit").textContent = String(s.milestones.length);
+  $("msSplit").textContent = `Top ${s.nextRoundSize || 1}`;
+
   $("pot").textContent = fmt(units(o.prize?.pot));
   $("botq").textContent = fmt(units(o.bot?.quote));
-  $("bott").textContent = `$PUMP ready · ${fmt(units(o.bot?.tokens))} tokens held`;
+  $("bott").textContent = `${fmt(units(o.bot?.tokens))} tokens held`;
   $("adq").textContent = fmt(units(o.airdrop?.quote));
   const firstRound = (o.launchTime || 0) + (o.airdrop?.minAgeMs || 3_600_000);
-  $("adnext").textContent = Date.now() < firstRound
-    ? `accruing · first round in ${dur(firstRound - Date.now())}`
-    : o.airdrop?.lastAt ? `last round ${ago(o.airdrop.lastAt)} ago · every ${dur(o.airdrop.everyMs)}` : `$PUMP ready · rounds every ${dur(o.airdrop?.everyMs || 0)}`;
+  $("adnext").textContent = o.prelaunch ? `Starts ${dur(o.airdrop?.minAgeMs || 3_600_000)} after launch`
+    : Date.now() < firstRound
+    ? `First round in ${dur(firstRound - Date.now())}`
+    : o.airdrop?.lastAt ? `Last round ${ago(o.airdrop.lastAt)} ago, every ${dur(o.airdrop.everyMs)}` : `Rounds every ${dur(o.airdrop?.everyMs || 0)}`;
 
   // 1 — longest holders
   const L = o.prize?.ladder || {};
@@ -203,50 +447,103 @@ async function load() {
     (L.size ? ` (the current #1 has won ${L.size} round${L.size > 1 ? "s" : ""} running).` : ".") +
     ` A milestone counts once the market cap has held it for ${o.prize?.confirmSamples || 1} ticks in a row.`;
   $("longest").innerHTML = s.longest.length ? s.longest.map((h) =>
-    `<tr><td>${h.rank}</td><td>${acct(h.owner)}</td><td class="r">${h.since ? ago(h.since) : "—"}</td><td class="r mono">${fmt(units(h.balance))}</td><td>${h.nextRoundWinner ? '<span class="tag win">IN LINE</span>' : ""}</td></tr>`).join("")
-    : empty(5, `No wallet has held ${minHold}+ tokens yet`);
+    `<tr><td class="rank">${h.rank}</td><td>${acct(h.owner)}${h.nextRoundWinner ? '<span class="note">in line</span>' : ""}</td><td class="r muted">${h.since ? ago(h.since) : "—"}</td><td class="r">${fmt(units(h.balance))}</td></tr>`).join("")
+    : empty(4, `No wallet has held ${minHold}+ tokens yet`);
   $("milestones").innerHTML = s.milestones.length ? s.milestones.map((x) => {
     const n = x.winners.length, done = x.delivered >= n;
-    return `<tr><td>${usdLevel(x.level * step)}</td><td>${x.winners.map((w) => acct(w.owner)).join(" ")}</td><td class="r mono">${fmt(units(x.pot))}</td>` +
-      `<td>${done ? txl(x.sig, '<span class="tag ok">PAID</span>') : `<span class="tag q">QUEUED ${x.delivered}/${n}</span>`}</td><td class="r">${ago(x.ts)}</td></tr>`;
-  }).join("") : empty(5, `No milestone reached yet. First is ${usdLevel(step)}.`);
+    return `<tr><td>${usdLevel(x.level * step)}</td><td>${x.winners.map((w) => acct(w.owner)).join(", ")}</td><td class="r">${fmt(units(x.pot))}</td>` +
+      `<td>${done ? txl(x.sig, "Paid") : `<span class="muted">Queued ${x.delivered}/${n}</span>`}</td><td class="r muted hide-sm">${ago(x.ts)}</td></tr>`;
+  }).join("") : empty(5, `No milestone reached yet. The first is ${usdLevel(step)}.`);
 
   // 2 — bot
   const b = o.bot || {}, dec = b.lastDecision;
   const high = Math.max(0, ...s.prices.map((p) => p.price));
   const dipLine = high ? high * (1 - (b.dipPct || 0)) : null;
   spark(s.prices, dipLine, b.nextSellAt);
-  $("botSub").textContent = `Buys with the whole bucket when price falls ${Math.round((b.dipPct || 0) * 100)}% under its 24h high (green line). ` +
-    `Sells half its bag each time price clears the next rung, +${Math.round((b.topStepPct || 0) * 100)}% steps over its average entry (red line).`;
+  $("botSub").textContent = `Buys with the whole bucket when price falls ${Math.round((b.dipPct || 0) * 100)}% under its 24h high. ` +
+    `Sells half its bag each time price clears the next rung, in +${Math.round((b.topStepPct || 0) * 100)}% steps over its average entry.`;
   $("botkv").innerHTML = `
-    <dt>Wallet</dt><dd>${acct(o.wallets?.botWallet?.address)}</dd>
-    <dt>Average entry</dt><dd>${b.avgEntry ? px(b.avgEntry) + " $PUMP" : "no position"}</dd>
-    <dt>Buy below</dt><dd>${dipLine ? px(dipLine) : "—"}</dd>
-    <dt>Next sell rung</dt><dd>${b.nextSellAt ? `${px(b.nextSellAt)} (rung ${b.ladderStep + 1})` : "—"}</dd>
-    <dt>Last check</dt><dd>${dec ? `${esc(dec.action.toUpperCase())}: ${esc(dec.reason)} · ${ago(dec.at)} ago` : "—"}</dd>`;
+    <div><dt>Wallet</dt><dd>${acct(o.wallets?.botWallet?.address)}</dd></div>
+    <div><dt>Average entry</dt><dd>${b.avgEntry ? `${px(b.avgEntry)} <span class="faint">$PUMP</span>` : '<span class="muted">No position</span>'}</dd></div>
+    <div><dt>Buy below</dt><dd>${dipLine ? px(dipLine) : "—"}</dd></div>
+    <div><dt>Next sell</dt><dd>${b.nextSellAt ? `${px(b.nextSellAt)} <span class="faint">rung ${b.ladderStep + 1}</span>` : "—"}</dd></div>
+    <div><dt>Last check</dt><dd>${dec ? `${esc(cap(dec.action))}, ${esc(dec.reason)} <span class="faint">${ago(dec.at)} ago</span>` : "—"}</dd></div>`;
   $("trades").innerHTML = s.trades.length ? s.trades.map((t) => {
-    const st = t.status === "failed" ? ' <span class="tag fail">FAILED</span>' : t.status === "sent" ? ' <span class="tag q">PENDING</span>' : "";
-    return `<tr><td><span class="tag ${t.side}">${t.side.toUpperCase()}</span>${st}</td><td class="r mono">${fmt(units(t.quote))}</td><td class="r mono">${fmt(units(t.tokens))}</td><td class="r mono">${px(t.price)}</td><td class="wrap">${esc(t.reason)}</td><td class="r">${txl(t.sig, ago(t.ts))}</td></tr>`;
-  }).join("") : empty(6, "No trades yet");
+    const st = t.status === "failed" ? ' <span class="note bad">failed</span>' : t.status === "sent" ? ' <span class="note">pending</span>' : "";
+    return `<tr${t.reason ? ' class="has-why"' : ""}><td>${esc(cap(t.side))}${st}</td><td class="r">${fmt(units(t.quote))}</td><td class="r hide-sm">${fmt(units(t.tokens))}</td><td class="r">${px(t.price)}</td><td class="r muted">${txl(t.sig, ago(t.ts))}</td></tr>` +
+      (t.reason ? `<tr class="why"><td colspan="5">${esc(t.reason)}</td></tr>` : "");
+  }).join("") : empty(5, "No trades yet");
 
   // 3 — airdrop
   $("adSub").innerHTML = `Every wallet holding for 1h+ without selling, <b>dev included</b>, engine wallets excluded. ` +
     `${s.airdropEligibleCount} eligible now, ${s.airdropPendingCount} still under the hour. Each round buys back with the whole bucket and splits pro-rata by balance.`;
   $("eligible").innerHTML = s.airdropEligible.length ? s.airdropEligible.map((h) =>
-    `<tr><td>${acct(h.owner)} ${h.isDev ? '<span class="tag dev">DEV</span>' : ""}</td><td class="r">${ago(h.since)}</td><td class="r mono">${fmt(units(h.balance))}</td><td class="r mono">${h.sharePct.toFixed(2)}%</td></tr>`).join("")
+    `<tr><td>${acct(h.owner)}${h.isDev ? '<span class="note">dev</span>' : ""}</td><td class="r muted hide-sm">${ago(h.since)}</td><td class="r">${fmt(units(h.balance))}</td><td class="r">${h.sharePct.toFixed(2)}%</td></tr>`).join("")
     : empty(4, "Nobody past the 1h mark yet. The bucket is accruing.");
-  $("airdrops").innerHTML = s.airdrops.length ? s.airdrops.map((a) => {
-    const done = a.delivered >= a.recipients;
-    return `<tr><td>${a.id}</td><td class="r mono">${txl(a.buy_sig, fmt(units(a.quote_spent)))}</td><td class="r mono">${fmt(units(a.tokens))}</td>` +
-      `<td><span class="tag ${done ? "ok" : "q"}">${a.delivered}/${a.recipients}</span></td><td class="r">${ago(a.ts)}</td></tr>`;
-  }).join("") : empty(5, "No rounds yet");
+  $("airdrops").innerHTML = s.airdrops.length ? s.airdrops.map((a) =>
+    `<tr><td class="muted">${a.id}</td><td class="r">${txl(a.buy_sig, fmt(units(a.quote_spent)))}</td><td class="r">${fmt(units(a.tokens))}</td>` +
+    `<td class="r${a.delivered >= a.recipients ? "" : " muted"}">${a.delivered}/${a.recipients}</td><td class="r muted hide-sm">${ago(a.ts)}</td></tr>`).join("")
+    : empty(5, "No rounds yet");
 
   // footer: wallets + gas
-  const names = { treasury: "Treasury (creator · prize pot)", botWallet: "Bot", airdropWallet: "Airdrop" };
+  const roles = { treasury: "Creator, holds the prize pot", botWallet: "Trades bucket 2", airdropWallet: "Buys back and airdrops bucket 3" };
   $("wallets").innerHTML = Object.entries(o.wallets || {}).map(([k, w]) =>
-    `<span>${names[k] || k}: ${acct(w.address)} · ${w.sol === null ? "?" : (w.sol / 1e9).toFixed(3)} SOL${w.low ? " ⚠" : ""}</span>`).join("") +
-    (o.devWallet ? `<span>Dev: ${acct(o.devWallet)}</span>` : "");
+    `<div class="wrow"><div>${names[k] || k}<span class="role">${roles[k] || ""}</span></div><div class="w-addr">${acct(w.address)}</div>` +
+    `<div class="sol${w.low ? " bad" : ""}">${w.sol === null ? "—" : `${(w.sol / 1e9).toFixed(3)} SOL`}${w.low ? ", low" : ""}</div></div>`).join("") +
+    (o.devWallet ? `<div class="wrow"><div>Dev<span class="role">In airdrops, not the prize</span></div><div class="w-addr">${acct(o.devWallet)}</div><div class="sol"></div></div>` : "");
 }
+
+// ---- engine timers: claims land on wall-clock slots, airdrops run hourly after the first hour ----
+let ov = null;
+const clock = (ms) => {
+  const t = Math.max(0, Math.ceil(ms / 1000)), h = (t / 3600) | 0, m = ((t % 3600) / 60) | 0, sec = t % 60, p = (n) => String(n).padStart(2, "0");
+  return h ? `${h}:${p(m)}:${p(sec)}` : `${p(m)}:${p(sec)}`;
+};
+function tickTimers() {
+  if (!ov) return;
+  const now = Date.now();
+  if (ov.prelaunch || !ov.mint) {
+    $("tSplit").textContent = $("tAir").textContent = "--:--";
+    $("tSplitNote").textContent = $("tAirNote").textContent = "after launch";
+    return;
+  }
+  const every = ov.claimEveryMs || 600_000;
+  $("tSplit").textContent = clock((Math.floor(now / every) + 1) * every - now);
+  $("tSplitNote").textContent = `every ${Math.round(every / 60_000)} min`;
+  $("tSplitCycle").style.setProperty("--seg", String(Math.max(1, Math.min(12, Math.round(every / 60_000)))));
+  $("tSplitBar").style.width = ((now % every) / every) * 100 + "%";
+
+  const a = ov.airdrop || {}, aEvery = a.everyMs || 3_600_000;
+  const first = (ov.launchTime || 0) + (a.minAgeMs || 3_600_000);
+  const due = a.lastAt ? Math.max(first, a.lastAt + aEvery) : first;
+  const from = a.lastAt || ov.launchTime || due - aEvery;
+  $("tAir").textContent = due > now ? clock(due - now) : "due";
+  $("tAirNote").textContent = due > now ? (a.lastAt ? `every ${Math.round(aEvery / 60_000)} min` : "first round") : "any moment";
+  $("tAirBar").style.width = Math.max(0, Math.min(1, (now - from) / (due - from || 1))) * 100 + "%";
+}
+setInterval(tickTimers, 1000);
+
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); return true; } catch {}
+  const t = document.createElement("textarea"); // fallback for browsers without the async clipboard
+  t.value = text; t.setAttribute("readonly", ""); t.style.position = "fixed"; t.style.opacity = "0";
+  document.body.appendChild(t); t.select();
+  let ok = false; try { ok = document.execCommand("copy"); } catch {}
+  t.remove(); return ok;
+}
+document.addEventListener("click", async (e) => {
+  const b = e.target.closest(".ca-copy");
+  if (!b || !(await copyText(b.dataset.copy))) return;
+  b.classList.add("done"); b.title = "Copied";
+  setTimeout(() => { b.classList.remove("done"); b.title = "Copy contract address"; }, 1500);
+});
+
+$("theme").addEventListener("click", () => {
+  const root = document.documentElement;
+  const cur = root.dataset.theme || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+  root.dataset.theme = cur === "light" ? "dark" : "light";
+  try { localStorage.setItem("triad-theme", root.dataset.theme); } catch {}
+});
 
 load();
 setInterval(load, 10_000);

@@ -12,10 +12,17 @@ async function main() {
   if (cfg.prelaunch) {
     serve(cfg, sql);
     const wallets = Object.fromEntries((["treasury", "botWallet", "airdropWallet"] as const).map((n) => [n, { address: cfg[n].publicKey.toBase58(), sol: null, low: false }]));
-    await db.setKv(sql, "overview", { at: Date.now(), prelaunch: true, dryRun: cfg.dryRun, wallets, stepUsd: cfg.prize.stepUsd, nextMilestoneUsd: cfg.prize.stepUsd });
+    // the rule settings go along too, so the dashboard can describe the buckets before launch
+    const overview = () => ({
+      at: Date.now(), prelaunch: true, dryRun: cfg.dryRun, wallets, stepUsd: cfg.prize.stepUsd, nextMilestoneUsd: cfg.prize.stepUsd,
+      prize: { minBalance: cfg.prize.minBalance.toString(), confirmSamples: cfg.prize.confirmSamples },
+      bot: { dipPct: cfg.bot.dipPct, topStepPct: cfg.bot.topStepPct },
+      airdrop: { minAgeMs: cfg.airdrop.minAgeMs, everyMs: cfg.airdrop.everyMs },
+    });
+    await db.setKv(sql, "overview", overview());
     console.log("pre-launch: no MINT set. Serving the dashboard only; nothing will tick or send.");
     // keep the heartbeat fresh so /healthz stays green
-    setInterval(() => db.setKv(sql, "overview", { at: Date.now(), prelaunch: true, dryRun: cfg.dryRun, wallets, stepUsd: cfg.prize.stepUsd, nextMilestoneUsd: cfg.prize.stepUsd }).catch(() => {}), cfg.tickMs);
+    setInterval(() => db.setKv(sql, "overview", overview()).catch(() => {}), cfg.tickMs);
     return;
   }
   const chain = await new Chain(cfg).init();

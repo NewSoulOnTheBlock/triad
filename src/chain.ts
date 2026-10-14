@@ -155,7 +155,8 @@ export class Chain {
     }
     const mint = this.cfg.mint.toBase58();
     for (let i = 0; i < sigs.length; i += 10) {
-      const txs = await retry(() => this.conn.getParsedTransactions(sigs.slice(i, i + 10), { maxSupportedTransactionVersion: 0 }));
+      // version 1 transactions now land on the curve too; capping at 0 makes the whole batch fail
+      const txs = await retry(() => this.conn.getParsedTransactions(sigs.slice(i, i + 10), { maxSupportedTransactionVersion: 1 }));
       for (const tx of txs) {
         const post = new Map<string, bigint>();
         for (const b of tx?.meta?.postTokenBalances ?? []) if (b.mint === mint && b.owner) post.set(b.owner, BigInt(b.uiTokenAmount.amount));
