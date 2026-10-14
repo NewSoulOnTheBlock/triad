@@ -394,7 +394,7 @@ async function load() {
   ].join("");
 
   // contract address capsule (click copies) + where to buy and chart it
-  ov = o;
+  ov = o; st = s;
   tickTimers();
   const act = $("actions");
   if (o.mint && act.dataset.mint !== o.mint) {
@@ -494,7 +494,7 @@ async function load() {
 }
 
 // ---- engine timers: claims land on wall-clock slots, airdrops run hourly after the first hour ----
-let ov = null;
+let ov = null, st = null;
 const clock = (ms) => {
   const t = Math.max(0, Math.ceil(ms / 1000)), h = (t / 3600) | 0, m = ((t % 3600) / 60) | 0, sec = t % 60, p = (n) => String(n).padStart(2, "0");
   return h ? `${h}:${p(m)}:${p(sec)}` : `${p(m)}:${p(sec)}`;
@@ -515,10 +515,12 @@ function tickTimers() {
 
   const a = ov.airdrop || {}, aEvery = a.everyMs || 3_600_000;
   const first = (ov.launchTime || 0) + (a.minAgeMs || 3_600_000);
-  const due = a.lastAt ? Math.max(first, a.lastAt + aEvery) : first;
+  let due = a.lastAt ? Math.max(first, a.lastAt + aEvery) : first, note = a.lastAt ? `every ${Math.round(aEvery / 60_000)} min` : "first round";
+  // A round also needs someone past the hour; until then it waits for the first wallet to cross it.
+  if (due <= now && st && !st.airdropEligibleCount && st.airdropNextEligibleAt > now) { due = st.airdropNextEligibleAt; note = "first 1h holders"; }
   const from = a.lastAt || ov.launchTime || due - aEvery;
-  $("tAir").textContent = due > now ? clock(due - now) : "due";
-  $("tAirNote").textContent = due > now ? (a.lastAt ? `every ${Math.round(aEvery / 60_000)} min` : "first round") : "any moment";
+  $("tAir").textContent = due > now ? clock(due - now) : "now";
+  $("tAirNote").textContent = due > now ? note : "this round";
   $("tAirBar").style.width = Math.max(0, Math.min(1, (now - from) / (due - from || 1))) * 100 + "%";
 }
 setInterval(tickTimers, 1000);

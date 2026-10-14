@@ -19,6 +19,7 @@ import {
   createAssociatedTokenAccountIdempotentInstruction,
   createTransferCheckedInstruction,
   getAssociatedTokenAddressSync,
+  unpackAccount,
 } from "@solana/spl-token";
 import BN from "bn.js";
 import bs58 from "bs58";
@@ -56,6 +57,10 @@ export class Chain {
   readonly curvePda: PublicKey;
   readonly poolPda: PublicKey;
   quoteTokenProgram!: PublicKey;
+  // Slot of the newest transaction this process has confirmed. Balance reads
+  // wait for the RPC to have caught up to it, so a read right after a send
+  // (claim, buy, airdrop) never sees the state from before that send.
+  private seenSlot = 0;
 
   constructor(private cfg: Config) {
     this.conn = new Connection(cfg.rpcUrl, "confirmed");
@@ -169,8 +174,9 @@ export class Chain {
 
   async tokenBalance(owner: PublicKey, mint = this.cfg.mint, program = TOKEN_2022_PROGRAM_ID): Promise<bigint> {
     const ata = getAssociatedTokenAddressSync(mint, owner, true, program);
-    const r = await this.conn.getTokenAccountBalance(ata).catch(() => null);
-    return r ? BigInt(r.value.amount) : 0n;
+    // A node behind `seenSlot` answers with an error, so this retries until one has caught up.
+    const info = await retry(() => this.conn.getAccountInfo(ata, { commitment: "confirmed", minContextSlot: this.seenSlot }), 6);
+    return info ? unpackAccount(ata, info, program).amount : 0n;
   }
 
   quoteBalance(owner: PublicKey) {
@@ -282,6 +288,7 @@ export class Chain {
     await this.conn.sendRawTransaction(p.raw, { skipPreflight: true, maxRetries: 5 });
     const res = await this.conn.confirmTransaction({ signature: p.sig, blockhash: p.blockhash, lastValidBlockHeight: p.lastValidBlockHeight }, "confirmed");
     if (res.value.err) throw new Error(`transaction failed: ${JSON.stringify(res.value.err)}`);
+    this.seenSlot = Math.max(this.seenSlot, res.context.slot);
     return p.sig;
   }
 

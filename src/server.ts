@@ -42,6 +42,10 @@ export function serve(cfg: Config, sql: db.Sql) {
     const elig = airdropEligible(people, now, { minAgeMs: cfg.airdrop.minAgeMs, exclude: engine, minBalance: cfg.airdrop.minBalance })
       .sort((a, b) => (b.balance > a.balance ? 1 : b.balance < a.balance ? -1 : 0));
     const weight = elig.reduce((t, h) => t + h.balance, 0n);
+    // When the first wallet still under the hour crosses it: the first round waits for that.
+    const nextEligibleAt = people
+      .filter((h) => now - h.heldSince < cfg.airdrop.minAgeMs && h.balance >= cfg.airdrop.minBalance)
+      .reduce((t, h) => Math.min(t, h.heldSince + cfg.airdrop.minAgeMs), Infinity);
 
     const stride = Math.max(1, Math.ceil(prices.length / 240)); // plenty for a sparkline
     return {
@@ -59,6 +63,7 @@ export function serve(cfg: Config, sql: db.Sql) {
       })),
       airdropEligibleCount: elig.length,
       airdropPendingCount: people.filter((h) => now - h.heldSince < cfg.airdrop.minAgeMs).length,
+      airdropNextEligibleAt: Number.isFinite(nextEligibleAt) ? nextEligibleAt : null,
       airdrops,
       trades,
       prices: prices.filter((_, i) => i % stride === 0 || i === prices.length - 1),
