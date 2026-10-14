@@ -8,6 +8,16 @@ async function main() {
   const cfg = loadConfig();
   const sql = db.connect(cfg.databaseUrl);
   await db.migrate(sql);
+  if (!cfg.prelaunch && (!process.env.DEV_WALLET || !process.env.LAUNCH_TIME)) throw new Error("MINT is set: DEV_WALLET and LAUNCH_TIME are required too");
+  if (cfg.prelaunch) {
+    serve(cfg, sql);
+    const wallets = Object.fromEntries((["treasury", "botWallet", "airdropWallet"] as const).map((n) => [n, { address: cfg[n].publicKey.toBase58(), sol: null, low: false }]));
+    await db.setKv(sql, "overview", { at: Date.now(), prelaunch: true, dryRun: cfg.dryRun, wallets, stepUsd: cfg.prize.stepUsd, nextMilestoneUsd: cfg.prize.stepUsd });
+    console.log("pre-launch: no MINT set. Serving the dashboard only; nothing will tick or send.");
+    // keep the heartbeat fresh so /healthz stays green
+    setInterval(() => db.setKv(sql, "overview", { at: Date.now(), prelaunch: true, dryRun: cfg.dryRun, wallets, stepUsd: cfg.prize.stepUsd, nextMilestoneUsd: cfg.prize.stepUsd }).catch(() => {}), cfg.tickMs);
+    return;
+  }
   const chain = await new Chain(cfg).init();
   const engine = new Engine(cfg, chain, sql);
   serve(cfg, sql);

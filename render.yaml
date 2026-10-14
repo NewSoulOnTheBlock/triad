@@ -1,0 +1,29 @@
+# One always-on web service: the engine loop + the dashboard it serves.
+# Starter plan or above: a free instance sleeps, which would stop the engine.
+services:
+  - type: web
+    name: triad
+    runtime: node
+    plan: starter
+    region: virginia # same AWS region as the Neon database (us-east-1)
+    buildCommand: npm ci
+    startCommand: npm run engine
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DRY_RUN
+        value: "true"
+      - key: RPC_URL
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      # keypairs as their JSON byte arrays
+      - key: TREASURY_KEYPAIR
+        sync: false
+      - key: BOT_KEYPAIR
+        sync: false
+      - key: AIRDROP_KEYPAIR
+        sync: false
+      # set after launch: MINT, LAUNCH_TIME, DEV_WALLET

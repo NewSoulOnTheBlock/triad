@@ -158,7 +158,7 @@ async function load() {
   }
   const o = s.overview || {};
   const stale = !o.at || Date.now() - o.at > 3 * 60_000;
-  $("mode").textContent = o.dryRun ? "DRY RUN" : "LIVE";
+  $("mode").textContent = o.prelaunch ? "PRE-LAUNCH" : o.dryRun ? "DRY RUN" : "LIVE";
   $("mode").className = "pill " + (o.dryRun ? "dry" : "live");
   $("mint").innerHTML = o.mint ? acct(o.mint) : "—";
   $("updated").textContent = o.at ? `updated ${ago(o.at)} ago` : "waiting for first tick";
@@ -171,6 +171,9 @@ async function load() {
   if (lowGas.length) {
     banner.className = "banner bad"; banner.style.display = "block";
     banner.textContent = `Low SOL: ${lowGas.map(([n, w]) => `${n} ${short(w.address)}`).join(", ")}. Those buckets are paused until topped up.`;
+  } else if (o.prelaunch) {
+    banner.className = "banner"; banner.style.display = "block";
+    banner.textContent = "Awaiting launch. The engine is up and the wallets below are ready; buckets start filling with the first trade.";
   } else if (o.dryRun) {
     banner.className = "banner"; banner.style.display = "block";
     banner.textContent = "Dry run: the engine is reading the chain and making every decision, but sending nothing. Nothing on this page has moved real funds.";

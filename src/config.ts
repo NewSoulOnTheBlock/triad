@@ -23,14 +23,16 @@ export function loadConfig() {
   return {
     rpcUrl: env("RPC_URL"),
     databaseUrl: env("DATABASE_URL"),
-    port: num("PORT", 8787),
+    port: num("PORT", 8787), // Render injects PORT
     dryRun: (process.env.DRY_RUN ?? "true") !== "false",
     priorityMicroLamports: num("PRIORITY_MICRO_LAMPORTS", 50_000),
 
-    mint: new PublicKey(env("MINT")),
+    // Before launch MINT is empty: the dashboard serves "awaiting launch" and nothing ticks.
+    prelaunch: !process.env.MINT,
+    mint: new PublicKey(process.env.MINT || PublicKey.default.toBase58()),
     quoteMint: new PublicKey(process.env.QUOTE_MINT ?? PUMP_MINT.toBase58()),
-    devWallet: new PublicKey(env("DEV_WALLET")),
-    launchTime: Date.parse(env("LAUNCH_TIME")),
+    devWallet: new PublicKey(process.env.DEV_WALLET || PublicKey.default.toBase58()),
+    launchTime: process.env.LAUNCH_TIME ? Date.parse(process.env.LAUNCH_TIME) : 0,
 
     treasury: loadKeypair(env("TREASURY_KEYPAIR")), // the coin's `creator`: receives the 3%, holds the prize pot
     botWallet: loadKeypair(env("BOT_KEYPAIR")),
