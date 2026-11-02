@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { readFileSync } from "node:fs";
 import { Keypair, PublicKey } from "@solana/web3.js";
+import bs58 from "bs58";
 import { DEFAULT_TRANCHES, parseTranches } from "./logic/bot.js";
 import { DEFAULT_TIERS, parseTiers } from "./logic/airdrop.js";
 
@@ -12,10 +13,17 @@ const env = (k: string, d?: string) => {
 const num = (k: string, d: number) => Number(process.env[k] ?? d);
 const big = (k: string, d: string) => BigInt(process.env[k] ?? d);
 
-// A keypair from a file path, or inline as the JSON byte array itself (how
-// hosts like Render pass secrets).
-export const loadKeypair = (pathOrJson: string) =>
-  Keypair.fromSecretKey(Uint8Array.from(JSON.parse(pathOrJson.trim().startsWith("[") ? pathOrJson : readFileSync(pathOrJson, "utf8"))));
+// A keypair from a JSON byte array, a base58 secret key, or a file path to
+// either (how hosts like Render pass secrets, and how local keys/ files store them).
+export const loadKeypair = (value: string) => {
+  const s = value.trim();
+  if (s.startsWith("[")) return Keypair.fromSecretKey(Uint8Array.from(JSON.parse(s)));
+  if (s.endsWith(".json") || s.includes("/") || s.includes("\\")) {
+    const f = readFileSync(s, "utf8").trim();
+    return Keypair.fromSecretKey(f.startsWith("[") ? Uint8Array.from(JSON.parse(f)) : bs58.decode(f));
+  }
+  return Keypair.fromSecretKey(bs58.decode(s)); // base58-encoded secret key
+};
 
 // $PUMP — listed in pump.fun's QuoteControl, so it is a "custom pair" quote
 // and create_v2 accepts creator_fee_bps up to Global.max_configurable (300).
