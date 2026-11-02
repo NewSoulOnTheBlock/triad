@@ -25,10 +25,13 @@
   html { -webkit-text-size-adjust: 100%; }
   body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 var(--ff); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
 
-  /* ---- moving background: a slow living aurora + faint HUD grid + vignette ---- */
-  .bg { position: fixed; inset: 0; z-index: -1; overflow: hidden;
-        background: radial-gradient(135% 105% at 50% -15%, #0c121c 0%, #070a10 52%, #04050a 100%); }
-  .bg i { position: absolute; border-radius: 50%; filter: blur(72px); opacity: .55; mix-blend-mode: screen; will-change: transform; }
+  /* ---- moving background: looping video + a dim tint + aurora glow + HUD grid ---- */
+  .ytbg { position: fixed; inset: 0; z-index: -3; overflow: hidden; pointer-events: none; background: #04050a; }
+  .ytbg iframe { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+                 width: 100vw; height: 56.25vw; min-width: 177.78vh; min-height: 100vh;
+                 border: 0; opacity: .62; pointer-events: none; }
+  .bg { position: fixed; inset: 0; z-index: -2; overflow: hidden; background: transparent; }
+  .bg i { position: absolute; border-radius: 50%; filter: blur(72px); opacity: .38; mix-blend-mode: screen; will-change: transform; }
   .bg .g1 { width: 48vw; height: 48vw; left: -10vw; top: -14vw;  background: radial-gradient(circle, rgba(242,193,78,.55), transparent 62%); animation: drift1 44s ease-in-out infinite; }
   .bg .g2 { width: 42vw; height: 42vw; right: -8vw; top: 6vw;    background: radial-gradient(circle, rgba(53,224,161,.42), transparent 62%); animation: drift2 57s ease-in-out infinite; }
   .bg .g3 { width: 40vw; height: 40vw; left: 32vw; bottom: -18vw; background: radial-gradient(circle, rgba(255,86,104,.34), transparent 62%); animation: drift3 50s ease-in-out infinite; }
@@ -38,7 +41,9 @@
     -webkit-mask-image: radial-gradient(125% 95% at 50% 0%, #000 38%, transparent 82%);
             mask-image: radial-gradient(125% 95% at 50% 0%, #000 38%, transparent 82%);
     animation: pan 44s linear infinite; }
-  .bg .veil { position: absolute; inset: 0; background: radial-gradient(135% 85% at 50% 120%, rgba(4,5,10,0), rgba(4,5,10,.82)); }
+  .bg .veil { position: absolute; inset: 0;
+    background: linear-gradient(rgba(4,5,10,.42), rgba(4,5,10,.5)),
+                radial-gradient(135% 90% at 50% 120%, rgba(4,5,10,0), rgba(4,5,10,.5)); }
   @keyframes drift1 { 0%,100% { transform: translate3d(0,0,0) scale(1); } 50% { transform: translate3d(6vw,4vw,0) scale(1.08); } }
   @keyframes drift2 { 0%,100% { transform: translate3d(0,0,0) scale(1); } 50% { transform: translate3d(-5vw,5vw,0) scale(1.1); } }
   @keyframes drift3 { 0%,100% { transform: translate3d(0,0,0) scale(1); } 50% { transform: translate3d(-4vw,-4vw,0) scale(.94); } }
@@ -155,6 +160,7 @@
 </style>
 </head>
 <body>
+<div class="ytbg" aria-hidden="true"><iframe src="https://www.youtube-nocookie.com/embed/ycDP_SWi0O8?autoplay=1&mute=1&loop=1&playlist=ycDP_SWi0O8&controls=0&rel=0&modestbranding=1&playsinline=1&disablekb=1&fs=0&iv_load_policy=3" title="background" tabindex="-1" allow="autoplay; encrypted-media" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
 <div class="bg" aria-hidden="true"><i class="g1"></i><i class="g2"></i><i class="g3"></i><div class="grid"></div><div class="veil"></div></div>
 <div class="wrap">
   <header>
