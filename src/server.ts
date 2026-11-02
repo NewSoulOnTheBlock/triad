@@ -106,6 +106,15 @@ export function serve(cfg: Config, sql: db.Sql) {
         const fresh = !!ov && Date.now() - ov.v.at < cfg.tickMs * 5;
         return res.writeHead(fresh ? 200 : 503).end(fresh ? "ok" : "stale");
       }
+      // Dashboard art (mecha + HUD glyphs). The name pattern rules out path traversal.
+      const asset = url.pathname.match(/^\/assets\/([a-z0-9-]+)\.(svg|webp|png)$/);
+      if (asset) {
+        const type = { svg: "image/svg+xml", webp: "image/webp", png: "image/png" }[asset[2]]!;
+        const body = await readFile(join(__dirname, "..", "web", "assets", `${asset[1]}.${asset[2]}`)).catch(() => null);
+        if (!body) return res.writeHead(404).end("not found");
+        res.writeHead(200, { "content-type": type, "cache-control": "public, max-age=86400" });
+        return res.end(body);
+      }
       if (url.pathname === "/logo.png") {
         res.writeHead(200, { "content-type": "image/png", "cache-control": "public, max-age=86400" });
         return res.end(await readFile(join(__dirname, "..", "web", "logo.png")));
