@@ -116,6 +116,18 @@
                     border-color: rgba(var(--acc-rgb),.85); box-shadow: 0 0 22px -6px rgba(var(--acc-rgb),.75); }
   .social a.x { --acc-rgb: var(--violet-rgb); }
 
+  /* ---- contract address ---- */
+  .ca { display: inline-flex; align-items: center; gap: 10px; max-width: 94vw; cursor: pointer;
+        padding: 9px 10px 9px 15px; background: rgba(var(--gold-rgb),.08); border: 1px solid rgba(var(--gold-rgb),.5);
+        clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+        transition: background .15s, box-shadow .15s; }
+  .ca:hover, .ca:focus-visible { outline: none; background: rgba(var(--gold-rgb),.16); box-shadow: 0 0 22px -7px rgba(var(--gold-rgb),.75); }
+  .ca .ca-k { font: 700 11px var(--fm); letter-spacing: .14em; color: var(--gold); }
+  .ca .ca-v { font-size: 12.5px; color: var(--steel); overflow-wrap: anywhere; }
+  .ca .ca-copy { font: 600 10px var(--fm); letter-spacing: .08em; text-transform: uppercase; color: var(--gold); white-space: nowrap;
+                 padding: 4px 10px; border: 1px solid rgba(var(--gold-rgb),.5); background: rgba(var(--gold-rgb),.1); }
+  @media (max-width: 560px) { .ca .ca-v { font-size: 11px; } }
+
   .banner { --acc-rgb: var(--gold-rgb); position: relative; display: none; margin-bottom: 16px; padding: 11px 16px 11px 18px;
             font-size: 13px; color: #ffd98a; letter-spacing: .01em;
             background: linear-gradient(90deg, rgba(var(--gold-rgb),.16), rgba(var(--gold-rgb),.03) 70%), rgba(8,11,18,.8);
@@ -303,6 +315,11 @@
       <a class="tg" href="https://t.me/supermechanopumperbot777" target="_blank" rel="noopener">Telegram</a>
       <a class="x" href="https://x.com/peoplespump" target="_blank" rel="noopener">X · Twitter</a>
     </nav>
+    <div class="ca" id="ca" role="button" tabindex="0" aria-label="Copy contract address" title="Click to copy the contract address">
+      <span class="ca-k">CA</span>
+      <span class="ca-v mono">C3KUZkWKP7kASoMytv6pTF11p7eT27sgbuAKQKcWpump</span>
+      <span class="ca-copy" id="caCopy">Copy</span>
+    </div>
   </header>
   <div class="banner" id="banner"></div>
 
@@ -557,6 +574,20 @@ $("lookup").addEventListener("submit", async (e) => {
 
 load();
 setInterval(load, 10_000);
+
+// Contract address: click (or Enter/Space) to copy.
+(function () {
+  const ca = document.getElementById("ca");
+  if (!ca) return;
+  const addr = "C3KUZkWKP7kASoMytv6pTF11p7eT27sgbuAKQKcWpump";
+  const copy = () => {
+    const done = () => { const c = document.getElementById("caCopy"); if (c) { c.textContent = "Copied"; setTimeout(() => (c.textContent = "Copy"), 1400); } };
+    if (navigator.clipboard) navigator.clipboard.writeText(addr).then(done).catch(() => {});
+    else done();
+  };
+  ca.addEventListener("click", copy);
+  ca.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); copy(); } });
+})();
 
 // Background video: browsers block autoplay with sound, so it starts muted and
 // unmutes on the viewer's first interaction (click, tap, scroll, or keypress).
