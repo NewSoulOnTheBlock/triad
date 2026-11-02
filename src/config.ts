@@ -36,7 +36,7 @@ export function loadConfig() {
     devWallet: new PublicKey(process.env.DEV_WALLET || PublicKey.default.toBase58()),
     launchTime: process.env.LAUNCH_TIME ? Date.parse(process.env.LAUNCH_TIME) : 0,
 
-    treasury: loadKeypair(env("TREASURY_KEYPAIR")), // the coin's `creator`: receives the 3% and splits it
+    treasury: loadKeypair(env("TREASURY_KEYPAIR")), // the coin's `creator`: receives the 2.1% and splits it
     volumeWallet: loadKeypair(env("VOLUME_KEYPAIR", process.env.BUYER_KEYPAIR)), // bucket 1 funder (falls back to the old BUYER_KEYPAIR)
     botWallet: loadKeypair(env("BOT_KEYPAIR")),
     airdropWallet: loadKeypair(env("AIRDROP_KEYPAIR")),

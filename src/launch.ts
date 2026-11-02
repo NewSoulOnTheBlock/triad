@@ -1,4 +1,4 @@
-// Builds the launch transaction: create the coin quoted in $PUMP with a 3%
+// Builds the launch transaction: create the coin quoted in $PUMP with a 2.1%
 // creator fee paid to the treasury, optionally with the dev's first buy in
 // the same transaction (no block for snipers to land in between).
 

@@ -1,6 +1,6 @@
 # Triad
 
-A pump.fun coin quoted in **$PUMP** with a **3% creator fee**, run by an engine that splits every fee into three 1% buckets:
+A pump.fun coin quoted in **$PUMP** with a **2.1% creator fee**, run by an engine that splits every fee into three 0.7% buckets:
 
 | Bucket | What it does |
 |---|---|

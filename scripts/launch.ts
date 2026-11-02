@@ -1,4 +1,4 @@
-// Launch the coin on pump.fun: quoted in $PUMP, 3% creator fee to the
+// Launch the coin on pump.fun: quoted in $PUMP, 2.1% creator fee (0.7% per bucket) to the
 // treasury wallet, optional dev buy in the same transaction.
 //
 //   npm run launch                  preflight + simulation + size check. Spends nothing.
@@ -9,7 +9,7 @@
 // Env: RPC_URL, DEV_KEYPAIR, TREASURY_KEYPAIR, TOKEN_NAME, TOKEN_SYMBOL,
 // TOKEN_IMAGE (+ TOKEN_DESCRIPTION, TWITTER, TELEGRAM, WEBSITE) or METADATA_URI.
 // Optional: DEV_BUY_PUMP (whole $PUMP, e.g. 50000), MINT_KEYPAIR (vanity),
-// CREATOR_FEE_BPS (default 300), LOOKUP_TABLE (reuse one from a rehearsal).
+// CREATOR_FEE_BPS (default 210 = 2.1% total, 0.7% per bucket), LOOKUP_TABLE (reuse one from a rehearsal).
 
 import "dotenv/config";
 import { readFileSync } from "node:fs";
@@ -101,7 +101,7 @@ async function main() {
     conn, mint: mint.publicKey, dev: dev.publicKey, treasury: treasury.publicKey, quoteMint: PUMP_MINT,
     name: need("TOKEN_NAME"), symbol: need("TOKEN_SYMBOL"),
     uri: process.env.METADATA_URI ?? "https://example.invalid/placeholder.json", // replaced by the real upload on --send
-    creatorFeeBps: Number(process.env.CREATOR_FEE_BPS ?? 300), devBuyQuote,
+    creatorFeeBps: Number(process.env.CREATOR_FEE_BPS ?? 210), devBuyQuote,
   };
   const built = await buildLaunch(params);
   for (const [label, ok] of built.checks) console.log(ok ? "  ok  " : "  FAIL", label);
