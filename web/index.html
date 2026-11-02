@@ -160,7 +160,7 @@
 </style>
 </head>
 <body>
-<div class="ytbg" aria-hidden="true"><iframe src="https://www.youtube-nocookie.com/embed/ycDP_SWi0O8?autoplay=1&mute=1&loop=1&playlist=ycDP_SWi0O8&controls=0&rel=0&modestbranding=1&playsinline=1&disablekb=1&fs=0&iv_load_policy=3" title="background" tabindex="-1" allow="autoplay; encrypted-media" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
+<div class="ytbg" aria-hidden="true"><iframe id="ytbg-frame" src="https://www.youtube-nocookie.com/embed/ycDP_SWi0O8?autoplay=1&mute=1&loop=1&playlist=ycDP_SWi0O8&controls=0&rel=0&modestbranding=1&playsinline=1&disablekb=1&fs=0&iv_load_policy=3&enablejsapi=1" title="background" tabindex="-1" allow="autoplay; encrypted-media" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
 <div class="bg" aria-hidden="true"><i class="g1"></i><i class="g2"></i><i class="g3"></i><div class="grid"></div><div class="veil"></div></div>
 <div class="wrap">
   <header>
@@ -382,6 +382,22 @@ $("lookup").addEventListener("submit", async (e) => {
 
 load();
 setInterval(load, 10_000);
+
+// Background video: browsers block autoplay with sound, so it starts muted and
+// unmutes on the viewer's first interaction (click, tap, scroll, or keypress).
+(function () {
+  const frame = document.getElementById("ytbg-frame");
+  if (!frame) return;
+  const cmd = (func, args) => frame.contentWindow && frame.contentWindow.postMessage(JSON.stringify({ event: "command", func, args: args || [] }), "*");
+  const events = ["pointerdown", "touchstart", "keydown", "click", "scroll", "wheel"];
+  let done = false;
+  const go = () => {
+    if (done) return; done = true;
+    cmd("unMute"); cmd("setVolume", [100]); cmd("playVideo");
+    events.forEach((e) => window.removeEventListener(e, go, true));
+  };
+  events.forEach((e) => window.addEventListener(e, go, { capture: true, passive: true }));
+})();
 </script>
 </body>
 </html>
