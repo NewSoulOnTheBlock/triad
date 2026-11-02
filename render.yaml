@@ -22,6 +22,8 @@ services:
       # keypairs as their JSON byte arrays
       - key: TREASURY_KEYPAIR
         sync: false
+      - key: BUYER_KEYPAIR
+        sync: false
       - key: BOT_KEYPAIR
         sync: false
       - key: AIRDROP_KEYPAIR

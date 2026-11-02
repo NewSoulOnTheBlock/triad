@@ -1,10 +1,10 @@
-// Creates the three engine wallets under ./keys (gitignored). Never
+// Creates the four engine wallets under ./keys (gitignored). Never
 // overwrites an existing file. Your dev wallet is NOT made here — use your own.
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { Keypair } from "@solana/web3.js";
 
 mkdirSync("keys", { recursive: true });
-for (const name of ["treasury", "bot", "airdrop"]) {
+for (const name of ["treasury", "buyer", "bot", "airdrop"]) {
   const path = `keys/${name}.json`;
   if (existsSync(path)) {
     console.log(`kept     ${path}`);

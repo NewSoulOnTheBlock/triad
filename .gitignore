@@ -4,3 +4,4 @@ keys/
 *.keypair.json
 .scratch/
 .boost/
+.env.otc

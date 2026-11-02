@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Triad Engine</title>
+<title>SuperMechaPumperBot 777</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
 <style>
@@ -23,6 +23,8 @@
   .wrap { max-width: 1320px; margin: 0 auto; padding: 20px 16px 60px; }
   header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-bottom: 14px; }
   h1 { font-size: 22px; font-weight: 800; margin: 0 6px 0 0; letter-spacing: -.02em; }
+  .logo { height: 46px; width: auto; margin: 0 8px 0 0; image-rendering: -webkit-optimize-contrast; }
+  @media (max-width: 560px) { .logo { height: 34px; } }
   .pill { font: 600 11px "JetBrains Mono", monospace; padding: 3px 8px; border-radius: 99px; border: 1px solid var(--line); color: var(--dim); white-space: nowrap; }
   .pill.dry { color: var(--gold); border-color: var(--gold); }
   .pill.live { color: var(--green); border-color: var(--green); }
@@ -59,6 +61,9 @@
   .tag.fail { border: 1px solid var(--red); color: var(--red); }
   a { color: inherit; text-decoration: none; border-bottom: 1px dotted var(--dim); }
   a:hover { border-bottom-color: var(--text); }
+  .lookup { display: flex; gap: 6px; margin-bottom: 10px; }
+  .lookup input { flex: 1; min-width: 0; background: transparent; color: inherit; border: 1px solid var(--dim); border-radius: 6px; padding: 6px 8px; font: 12px "JetBrains Mono", monospace; }
+  .lookup button { background: var(--green); color: #000; border: 0; border-radius: 6px; padding: 6px 12px; font-weight: 600; cursor: pointer; }
   .kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 12.5px; margin-bottom: 12px; }
   .kv dt { color: var(--dim); } .kv dd { margin: 0; font-family: "JetBrains Mono", monospace; min-width: 0; overflow-wrap: anywhere; }
   svg.spark { width: 100%; height: 72px; display: block; margin-bottom: 10px; background: var(--panel2); border-radius: 6px; }
@@ -70,7 +75,7 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>Triad Engine</h1>
+    <img src="/logo.png" alt="SuperMechaPumperBot 777" class="logo" />
     <span id="mode" class="pill">connecting…</span>
     <span class="pill" id="mint">—</span>
     <span class="pill" id="updated">—</span>
@@ -80,23 +85,22 @@
 
   <div class="stats">
     <div class="stat"><div class="k">Market cap</div><div class="v" id="mcap">—</div><div class="s" id="venue">—</div></div>
-    <div class="stat"><div class="k">Next milestone</div><div class="v" id="next">—</div><div class="bar"><i id="nextbar" style="width:0"></i></div></div>
-    <div class="stat"><div class="k">1 · Prize pot</div><div class="v" id="pot">—</div><div class="s">$PUMP · paid out at each milestone</div></div>
-    <div class="stat"><div class="k">2 · Bot bucket</div><div class="v" id="botq">—</div><div class="s" id="bott">—</div></div>
+    <div class="stat"><div class="k">Volume printed</div><div class="v" id="volPrinted">—</div><div class="s" id="volPrintedSub">—</div></div>
+    <div class="stat"><div class="k">1 · Volume bucket</div><div class="v" id="volq">—</div><div class="s" id="volnext">—</div></div>
+    <div class="stat"><div class="k">2 · Stabilizer bucket</div><div class="v" id="botq">—</div><div class="s" id="bott">—</div></div>
     <div class="stat"><div class="k">3 · Airdrop bucket</div><div class="v" id="adq">—</div><div class="s" id="adnext">—</div></div>
   </div>
 
   <div class="grid">
     <section>
-      <h2><span class="n">1</span> Longest holders</h2>
-      <p class="sub" id="ladderSub">—</p>
-      <div class="scroll"><table class="tbl"><thead><tr><th>#</th><th>Wallet</th><th class="r">Held</th><th class="r">Balance</th><th></th></tr></thead><tbody id="longest"></tbody></table></div>
-      <h3>Milestone payouts</h3>
-      <div class="scroll" style="max-height:240px"><table class="tbl"><thead><tr><th>Level</th><th>Winners</th><th class="r">Pot</th><th>Status</th><th class="r">When</th></tr></thead><tbody id="milestones"></tbody></table></div>
+      <h2><span class="n">1</span> Volume bot</h2>
+      <p class="sub" id="volSub">—</p>
+      <dl class="kv" id="volkv"></dl>
+      <div class="scroll"><table class="tbl"><thead><tr><th></th><th class="r">$PUMP</th><th class="r">Sub</th><th class="r">Price</th><th class="r">When</th></tr></thead><tbody id="cycles"></tbody></table></div>
     </section>
 
     <section>
-      <h2><span class="n">2</span> Dip / top bot</h2>
+      <h2><span class="n">2</span> Price stabilizer</h2>
       <p class="sub" id="botSub">—</p>
       <svg class="spark" id="spark" viewBox="0 0 300 72" preserveAspectRatio="none" role="img" aria-label="24h price"></svg>
       <dl class="kv" id="botkv"></dl>
@@ -105,11 +109,13 @@
     </section>
 
     <section>
-      <h2><span class="n">3</span> Airdrop-eligible holders</h2>
+      <h2><span class="n">3</span> DLMM liquidity + fee airdrop</h2>
       <p class="sub" id="adSub">—</p>
-      <div class="scroll"><table class="tbl"><thead><tr><th>Wallet</th><th class="r">Held</th><th class="r">Balance</th><th class="r">Share</th></tr></thead><tbody id="eligible"></tbody></table></div>
-      <h3>Airdrop rounds</h3>
-      <div class="scroll" style="max-height:220px"><table class="tbl"><thead><tr><th>#</th><th class="r">$PUMP in</th><th class="r">Tokens out</th><th>Delivered</th><th class="r">When</th></tr></thead><tbody id="airdrops"></tbody></table></div>
+      <form id="lookup" class="lookup"><input id="lookupAddr" placeholder="Paste a wallet to see its multiplier and share" autocomplete="off" spellcheck="false"><button>Check</button></form>
+      <dl class="kv" id="lookupOut" style="display:none"></dl>
+      <div class="scroll"><table class="tbl"><thead><tr><th>Wallet</th><th class="r">Held</th><th class="r">Mult</th><th class="r">Counted</th><th class="r">Share</th></tr></thead><tbody id="eligible"></tbody></table></div>
+      <h3>Fee airdrop rounds</h3>
+      <div class="scroll" style="max-height:220px"><table class="tbl"><thead><tr><th>#</th><th class="r">Fees ($PUMP)</th><th class="r">Airdropped</th><th>Delivered</th><th class="r">When</th></tr></thead><tbody id="airdrops"></tbody></table></div>
     </section>
   </div>
 
@@ -134,15 +140,15 @@ const ago = (t) => dur(Date.now() - new Date(t).getTime());
 const empty = (cols, msg) => `<tr><td colspan="${cols}" class="empty">${msg}</td></tr>`;
 const px = (p) => (p ? Number(p).toPrecision(4) : "—");
 
-function spark(points, dipLine, sellLine) {
+function spark(points, dipLine, sellLine, anchor) {
   const svg = $("spark");
   if (points.length < 2) { svg.innerHTML = `<text x="150" y="40" text-anchor="middle" fill="var(--dim)" font-size="10">collecting price history…</text>`; return; }
-  const ys = points.map((p) => p.price).concat([dipLine, sellLine].filter(Boolean));
+  const ys = points.map((p) => p.price).concat([dipLine, sellLine, anchor].filter(Boolean));
   const lo = Math.min(...ys), hi = Math.max(...ys), span = hi - lo || hi || 1;
   const y = (v) => 68 - ((v - lo) / span) * 64;
   const d = points.map((p, i) => `${((i / (points.length - 1)) * 300).toFixed(1)},${y(p.price).toFixed(1)}`).join(" ");
   const guide = (v, color) => (v ? `<line x1="0" x2="300" y1="${y(v)}" y2="${y(v)}" stroke="${color}" stroke-dasharray="3 3" stroke-width="1" vector-effect="non-scaling-stroke"/>` : "");
-  svg.innerHTML = guide(dipLine, "var(--green)") + guide(sellLine, "var(--red)") +
+  svg.innerHTML = guide(anchor, "var(--dim)") + guide(dipLine, "var(--green)") + guide(sellLine, "var(--red)") +
     `<polyline points="${d}" fill="none" stroke="var(--blue)" stroke-width="1.6" vector-effect="non-scaling-stroke"/>`;
 }
 
@@ -181,12 +187,13 @@ async function load() {
 
   // headline
   const m = o.market || {};
-  const step = o.stepUsd || 25000, next = o.nextMilestoneUsd || step, prev = next - step;
+  const V = o.volume || {};
   $("mcap").textContent = usd(m.mcapUsd);
   $("venue").textContent = m.venue ? `${m.venue === "pool" ? "PumpSwap pool" : "bonding curve"} · $PUMP $${(m.quoteUsd || 0).toFixed(5)}` : "—";
-  $("next").textContent = usdLevel(next);
-  $("nextbar").style.width = Math.max(0, Math.min(100, (((m.mcapUsd || 0) - prev) / step) * 100)) + "%";
-  $("pot").textContent = fmt(units(o.prize?.pot));
+  $("volPrinted").textContent = fmt(units(V.volume));
+  $("volPrintedSub").textContent = `$PUMP of two-sided volume · ${V.cycles || 0} cycles · ${V.activeSubs || 0} live wallets`;
+  $("volq").textContent = fmt(units(V.quote));
+  $("volnext").textContent = V.nextCycleAt && V.nextCycleAt > Date.now() ? `$PUMP ready · next cycle in ~${dur(V.nextCycleAt - Date.now())}` : `$PUMP ready · a cycle every ~${dur(V.everyMs || 0)}`;
   $("botq").textContent = fmt(units(o.bot?.quote));
   $("bott").textContent = `$PUMP ready · ${fmt(units(o.bot?.tokens))} tokens held`;
   $("adq").textContent = fmt(units(o.airdrop?.quote));
@@ -195,33 +202,37 @@ async function load() {
     ? `accruing · first round in ${dur(firstRound - Date.now())}`
     : o.airdrop?.lastAt ? `last round ${ago(o.airdrop.lastAt)} ago · every ${dur(o.airdrop.everyMs)}` : `$PUMP ready · rounds every ${dur(o.airdrop?.everyMs || 0)}`;
 
-  // 1 — longest holders
-  const L = o.prize?.ladder || {};
-  const minHold = fmt(units(o.prize?.minBalance));
-  $("ladderSub").innerHTML = `Ranked by how long each wallet has held at least <b>${minHold}</b> tokens without selling or sending any out. Dev and engine wallets are excluded. ` +
-    `${s.qualifiedCount} wallets qualify. If ${usdLevel(next)} confirmed now, the <b>top ${s.nextRoundSize || 1}</b> would split the pot` +
-    (L.size ? ` (the current #1 has won ${L.size} round${L.size > 1 ? "s" : ""} running).` : ".") +
-    ` A milestone counts once the market cap has held it for ${o.prize?.confirmSamples || 1} ticks in a row.`;
-  $("longest").innerHTML = s.longest.length ? s.longest.map((h) =>
-    `<tr><td>${h.rank}</td><td>${acct(h.owner)}</td><td class="r">${h.since ? ago(h.since) : "—"}</td><td class="r mono">${fmt(units(h.balance))}</td><td>${h.nextRoundWinner ? '<span class="tag win">IN LINE</span>' : ""}</td></tr>`).join("")
-    : empty(5, `No wallet has held ${minHold}+ tokens yet`);
-  $("milestones").innerHTML = s.milestones.length ? s.milestones.map((x) => {
-    const n = x.winners.length, done = x.delivered >= n;
-    return `<tr><td>${usdLevel(x.level * step)}</td><td>${x.winners.map((w) => acct(w.owner)).join(" ")}</td><td class="r mono">${fmt(units(x.pot))}</td>` +
-      `<td>${done ? txl(x.sig, '<span class="tag ok">PAID</span>') : `<span class="tag q">QUEUED ${x.delivered}/${n}</span>`}</td><td class="r">${ago(x.ts)}</td></tr>`;
-  }).join("") : empty(5, `No milestone reached yet. First is ${usdLevel(step)}.`);
+  // 1 — volume bot
+  $("volSub").innerHTML = `Prints two-sided volume through rotating throwaway wallets. Each is funded from the bucket, runs <b>${V.cyclesPerWallet || 0}</b> atomic buy+sell cycles ` +
+    `(one transaction each, so it never holds the coin), then is drained back and a fresh wallet takes over. About every <b>${dur(V.everyMs || 0)}</b> (timing varies); ` +
+    `no single buy moves price more than ${((V.maxImpactPct || 0) * 100).toFixed(1)}%.`;
+  $("volkv").innerHTML = `
+    <dt>Wallet</dt><dd>${acct(o.wallets?.volumeWallet?.address)}</dd>
+    <dt>Volume printed</dt><dd>${fmt(units(V.volume))} $PUMP over ${V.cycles || 0} cycles</dd>
+    <dt>Active sub</dt><dd>${V.activeSub ? `${acct(V.activeSub)} · cycle ${V.cyclesDone || 0}/${V.cyclesPerWallet || 0}` : "—"}</dd>`;
+  const st = (x) => (x.status === "failed" ? ' <span class="tag fail">FAILED</span>' : x.status === "sent" ? ' <span class="tag q">PENDING</span>' : "");
+  $("cycles").innerHTML = (s.cycles || []).length
+    ? s.cycles.slice(0, 100).map((x) => `<tr><td><span class="tag buy">CYCLE</span>${st(x)}</td><td class="r mono">${fmt(units(x.quote))}</td><td class="r mono">${acct(x.sub)}</td><td class="r mono">${px(x.price)}</td><td class="r">${txl(x.sig, ago(x.ts))}</td></tr>`).join("")
+    : empty(5, "No cycles yet. The bucket fills with the first fee claim.");
 
   // 2 — bot
   const b = o.bot || {}, dec = b.lastDecision;
-  const high = Math.max(0, ...s.prices.map((p) => p.price));
-  const dipLine = high ? high * (1 - (b.dipPct || 0)) : null;
-  spark(s.prices, dipLine, b.nextSellAt);
-  $("botSub").textContent = `Buys with the whole bucket when price falls ${Math.round((b.dipPct || 0) * 100)}% under its 24h high (green line). ` +
-    `Sells half its bag each time price clears the next rung, +${Math.round((b.topStepPct || 0) * 100)}% steps over its average entry (red line).`;
+  const tr = b.tranches || [];
+  const dipLine = tr.find((t) => t.armed)?.price ?? null;
+  spark(s.prices, dipLine, b.nextSellAt, b.anchor);
+  $("botSub").textContent = `Trades around a ${b.anchorHours || 6}h average price (grey line). Buys dips in tranches, a bigger share of the bucket the deeper it goes; ` +
+    `the first armed level is the green line. Sells half its bag each time price clears the next rung, +${Math.round((b.topStepPct || 0) * 100)}% steps over its average entry (red line). ` +
+    `Every order is split so no single swap moves price more than ${Math.round((b.maxImpactPct || 0) * 100)}%. It smooths swings; it can't hold a floor.`;
+  const total = tr.reduce((a, t) => a + t.weight, 0) || 1;
+  const levels = tr.map((t) => `<span class="tag ${t.armed ? "ok" : "q"}">−${Math.round(t.below * 100)}% · ${Math.round((t.weight / total) * 100)}%${t.price ? " @ " + px(t.price) : ""}${t.armed ? "" : " · FIRED"}</span>`).join(" ");
+  const ord = b.order ? `${esc(b.order.side.toUpperCase())} · ${fmt(units(b.order.remaining))} ${b.order.side === "buy" ? "$PUMP" : "tokens"} left` : "none";
+  const paused = b.pausedUntil && b.pausedUntil > Date.now() ? `paused after a crash, ${dur(b.pausedUntil - Date.now())} left` : null;
   $("botkv").innerHTML = `
     <dt>Wallet</dt><dd>${acct(o.wallets?.botWallet?.address)}</dd>
+    <dt>Anchor</dt><dd>${b.anchor ? px(b.anchor) : "—"}</dd>
     <dt>Average entry</dt><dd>${b.avgEntry ? px(b.avgEntry) + " $PUMP" : "no position"}</dd>
-    <dt>Buy below</dt><dd>${dipLine ? px(dipLine) : "—"}</dd>
+    <dt>Buy levels</dt><dd>${levels || "—"}${paused ? ` <span class="tag fail">${paused}</span>` : ""}</dd>
+    <dt>Working order</dt><dd>${ord}</dd>
     <dt>Next sell rung</dt><dd>${b.nextSellAt ? `${px(b.nextSellAt)} (rung ${b.ladderStep + 1})` : "—"}</dd>
     <dt>Last check</dt><dd>${dec ? `${esc(dec.action.toUpperCase())}: ${esc(dec.reason)} · ${ago(dec.at)} ago` : "—"}</dd>`;
   $("trades").innerHTML = s.trades.length ? s.trades.map((t) => {
@@ -230,23 +241,53 @@ async function load() {
   }).join("") : empty(6, "No trades yet");
 
   // 3 — airdrop
-  $("adSub").innerHTML = `Every wallet holding for 1h+ without selling, <b>dev included</b>, engine wallets excluded. ` +
-    `${s.airdropEligibleCount} eligible now, ${s.airdropPendingCount} still under the hour. Each round buys back with the whole bucket and splits pro-rata by balance.`;
+  const A = o.airdrop || {};
+  const tiers = (A.tiers || []).map((t) => `${dur(t.ms)} → ${t.mult}×`).join(" · ");
+  $("adSub").innerHTML = `Post-migration the bucket holds its $PUMP as a Meteora DLMM position on the coin/$PUMP pair and keeps it in range ` +
+    `(it re-centres on the active bin when price leaves the position${A.pool ? `, pool <code>${acct(A.pool)}</code>` : ""}). The $PUMP is LP <b>principal</b>; the position's ` +
+    `<b>earned fees</b> are claimed, converted to $PUMP, and airdropped each round to holders of 1h+, weighted by ` +
+    `<b>lowest balance held this round × loyalty multiplier</b> (${tiers}). Selling or sending out <b>any</b> amount resets the multiplier to zero. Dev included, engine wallets excluded. ` +
+    `${s.airdropEligibleCount} eligible now, ${s.airdropPendingCount} still too new.` +
+    (A.nextAt ? ` Next round in ~${dur(A.nextAt - Date.now())}; ${fmt(units(A.pot))} $PUMP of fees pooled for it so far.` : "");
   $("eligible").innerHTML = s.airdropEligible.length ? s.airdropEligible.map((h) =>
-    `<tr><td>${acct(h.owner)} ${h.isDev ? '<span class="tag dev">DEV</span>' : ""}</td><td class="r">${ago(h.since)}</td><td class="r mono">${fmt(units(h.balance))}</td><td class="r mono">${h.sharePct.toFixed(2)}%</td></tr>`).join("")
-    : empty(4, "Nobody past the 1h mark yet. The bucket is accruing.");
+    `<tr><td>${acct(h.owner)} ${h.isDev ? '<span class="tag dev">DEV</span>' : ""}</td><td class="r">${ago(h.since)}</td><td class="r mono">${h.mult.toFixed(2)}×</td>` +
+    `<td class="r mono">${fmt(units(h.counted))}</td><td class="r mono">${h.sharePct.toFixed(2)}%</td></tr>`).join("")
+    : empty(5, "Nobody past the first tier yet. The LP is earning fees toward the first round.");
   $("airdrops").innerHTML = s.airdrops.length ? s.airdrops.map((a) => {
     const done = a.delivered >= a.recipients;
-    return `<tr><td>${a.id}</td><td class="r mono">${txl(a.buy_sig, fmt(units(a.quote_spent)))}</td><td class="r mono">${fmt(units(a.tokens))}</td>` +
+    return `<tr><td>${a.id}</td><td class="r mono">${fmt(units(a.quote_spent))}</td><td class="r mono">${fmt(units(a.tokens))}</td>` +
       `<td><span class="tag ${done ? "ok" : "q"}">${a.delivered}/${a.recipients}</span></td><td class="r">${ago(a.ts)}</td></tr>`;
   }).join("") : empty(5, "No rounds yet");
 
   // footer: wallets + gas
-  const names = { treasury: "Treasury (creator · prize pot)", botWallet: "Bot", airdropWallet: "Airdrop" };
+  const names = { treasury: "Treasury (creator · splits fees)", volumeWallet: "Volume bot", botWallet: "Stabilizer", airdropWallet: "Airdrop" };
   $("wallets").innerHTML = Object.entries(o.wallets || {}).map(([k, w]) =>
     `<span>${names[k] || k}: ${acct(w.address)} · ${w.sol === null ? "?" : (w.sol / 1e9).toFixed(3)} SOL${w.low ? " ⚠" : ""}</span>`).join("") +
     (o.devWallet ? `<span>Dev: ${acct(o.devWallet)}</span>` : "");
 }
+
+// Wallet lookup: multiplier, share of the next drop, and what selling would cost.
+$("lookup").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const out = $("lookupOut"), addr = $("lookupAddr").value.trim();
+  out.style.display = "grid";
+  out.innerHTML = "<dt>…</dt><dd>checking</dd>";
+  try {
+    const r = await fetch(`/api/wallet?address=${encodeURIComponent(addr)}`, { cache: "no-store" });
+    if (!r.ok) throw new Error(r.status === 400 ? "That isn't a Solana address." : `Error ${r.status}`);
+    const w = await r.json();
+    if (w.status === "engine" || w.status === "none") { out.innerHTML = `<dt>Wallet</dt><dd>${esc(w.note)}</dd>`; return; }
+    out.innerHTML = `
+      <dt>Wallet</dt><dd>${acct(w.address)}</dd>
+      <dt>Holding</dt><dd>${fmt(units(w.balance))} tokens, unbroken for ${dur(w.heldMs)}</dd>
+      <dt>Counted this round</dt><dd>${fmt(units(w.counted))}${BigInt(w.counted) < BigInt(w.balance) ? " (your lowest balance since the last round; top-ups count from the next one)" : ""}</dd>
+      <dt>Multiplier</dt><dd>${w.status === "too-new" ? `not yet: eligible in ${dur(w.eligibleInMs)}` : `${w.mult.toFixed(2)}×`}${w.next ? ` → ${w.next.mult}× in ${dur(w.next.inMs)}` : " (max)"}</dd>
+      <dt>Next drop</dt><dd>${w.status === "eligible" ? `${w.sharePct.toFixed(3)}% · ~${fmt(units(w.projectedTokens))} tokens on what's bought so far` : "—"}</dd>
+      <dt>If you sell now</dt><dd>multiplier → 0×, eligible again in ${dur(w.ifSold.eligibleAgainInMs)}, back to today's ${w.mult.toFixed(2)}× in ${dur(w.ifSold.regainCurrentInMs)}</dd>`;
+  } catch (err) {
+    out.innerHTML = `<dt>Error</dt><dd>${esc(err.message)}</dd>`;
+  }
+});
 
 load();
 setInterval(load, 10_000);

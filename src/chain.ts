@@ -11,12 +11,15 @@ import {
   Connection,
   Keypair,
   PublicKey,
+  SystemProgram,
   Transaction,
   TransactionInstruction,
 } from "@solana/web3.js";
 import {
   TOKEN_2022_PROGRAM_ID,
   createAssociatedTokenAccountIdempotentInstruction,
+  createBurnCheckedInstruction,
+  createCloseAccountInstruction,
   createTransferCheckedInstruction,
   getAssociatedTokenAddressSync,
 } from "@solana/spl-token";
@@ -27,6 +30,7 @@ import {
   PUMP_SDK,
   bondingCurvePda,
   canonicalPumpPoolPdaWithQuote,
+  getBuyV3QuoteAmountFromTokenAmount,
   getBuyV3TokenAmountFromQuoteAmount,
   getSellSolAmountFromTokenAmount,
 } from "@pump-fun/pump-sdk";
@@ -79,8 +83,9 @@ export class Chain {
     return (await this.conn.getAccountInfo(this.poolPda)) !== null;
   }
 
-  // Quote ($PUMP) per token. Both sides are 6 decimals, so raw/raw is the price.
-  async price(): Promise<{ price: number; venue: "curve" | "pool" | "none" }> {
+  // Constant-product reserves the next swap trades against (curve: virtual
+  // reserves; pool: vaults plus the pool's virtual quote).
+  async reserves(): Promise<{ quote: bigint; base: bigint; venue: "curve" | "pool" } | null> {
     if (await this.migrated()) {
       const pool = await this.amm.fetchPool(this.poolPda);
       const [b, q] = await Promise.all([
@@ -88,12 +93,18 @@ export class Chain {
         this.conn.getTokenAccountBalance(pool.poolQuoteTokenAccount),
       ]);
       // Raw vault balance: fees waiting for a sweep sit in it and skew this by well under 1%.
-      const quote = Number(q.value.amount) + Number(pool.virtualQuoteReserves.toString());
-      return { price: quote / Number(b.value.amount), venue: "pool" };
+      const quote = BigInt(q.value.amount) + BigInt(pool.virtualQuoteReserves.toString());
+      return { quote, base: BigInt(b.value.amount), venue: "pool" };
     }
     const c = await this.curve();
-    if (!c || c.virtualTokenReserves.isZero()) return { price: 0, venue: "none" };
-    return { price: Number(c.virtualQuoteReserves.toString()) / Number(c.virtualTokenReserves.toString()), venue: "curve" };
+    if (!c || c.virtualTokenReserves.isZero()) return null;
+    return { quote: BigInt(c.virtualQuoteReserves.toString()), base: BigInt(c.virtualTokenReserves.toString()), venue: "curve" };
+  }
+
+  // Quote ($PUMP) per token. Both sides are 6 decimals, so raw/raw is the price.
+  async price(): Promise<{ price: number; venue: "curve" | "pool" | "none" }> {
+    const r = await this.reserves();
+    return r ? { price: Number(r.quote) / Number(r.base), venue: r.venue } : { price: 0, venue: "none" };
   }
 
   async totalSupply(): Promise<bigint> {
@@ -155,7 +166,7 @@ export class Chain {
     }
     const mint = this.cfg.mint.toBase58();
     for (let i = 0; i < sigs.length; i += 10) {
-      const txs = await retry(() => this.conn.getParsedTransactions(sigs.slice(i, i + 10), { maxSupportedTransactionVersion: 0 }));
+      const txs = await retry(() => this.conn.getParsedTransactions(sigs.slice(i, i + 10), { maxSupportedTransactionVersion: 1 }));
       for (const tx of txs) {
         const post = new Map<string, bigint>();
         for (const b of tx?.meta?.postTokenBalances ?? []) if (b.mint === mint && b.owner) post.set(b.owner, BigInt(b.uiTokenAmount.amount));
@@ -248,6 +259,46 @@ export class Chain {
     });
   }
 
+  // Bucket 1: ONE atomic buy+sell. Spends `quote` buying the exact token amount
+  // the curve returns, then sells that exact amount back in the same tx — zero
+  // dust, and the wallet is never left holding the coin even for a slot. Curve
+  // only: pre-migration is where volume matters, and exact buy+sell matching
+  // isn't available on the pool, so the engine round-trips in two txs there.
+  async volumeCycleIxs(user: PublicKey, quote: bigint): Promise<TransactionInstruction[]> {
+    if (await this.migrated()) throw new Error("volume cycle is curve-only (coin migrated)");
+    const [global, feeConfig, s] = await Promise.all([
+      this.pump.fetchGlobal(),
+      this.pump.fetchFeeConfig(),
+      this.pump.fetchBuyState(this.cfg.mint, user, TOKEN_2022_PROGRAM_ID, this.cfg.quoteMint),
+    ]);
+    if (s.bondingCurve.complete) throw new Error("curve complete, waiting for migration");
+    const bc = s.bondingCurve;
+    const mintSupply = bc.tokenTotalSupply;
+    const quoteBn = new BN(quote.toString());
+    const amount = getBuyV3TokenAmountFromQuoteAmount({ global, feeConfig, mintSupply, bondingCurve: bc, amount: quoteBn, curveBaseTokenBalance: s.curveBaseTokenBalance });
+    if (amount.lten(0)) throw new Error("volume cycle: buy quotes to zero tokens");
+    const buyQuote = getBuyV3QuoteAmountFromTokenAmount({ global, feeConfig, mintSupply, bondingCurve: bc, amount, curveBaseTokenBalance: s.curveBaseTokenBalance });
+    const sellQuote = getSellSolAmountFromTokenAmount({ global, feeConfig, mintSupply, bondingCurve: bc, amount });
+    const slip = this.cfg.volume.slippagePct;
+    const buy = await PUMP_SDK.buyV3Instructions({ bondingCurve: bc, associatedUserAccountInfo: s.associatedUserAccountInfo, mint: this.cfg.mint, user, amount, quoteAmount: buyQuote, slippage: slip, tokenProgram: TOKEN_2022_PROGRAM_ID, quoteTokenProgram: s.quoteTokenProgram });
+    const sell = await PUMP_SDK.sellV3Instructions({ bondingCurve: bc, mint: this.cfg.mint, user, amount, quoteAmount: sellQuote, slippage: slip, tokenProgram: TOKEN_2022_PROGRAM_ID, quoteTokenProgram: s.quoteTokenProgram });
+    return [...buy, ...sell];
+  }
+
+  // Move native SOL (funding a sub, or sweeping it back on drain).
+  solTransferIxs(from: PublicKey, to: PublicKey, lamports: bigint): TransactionInstruction[] {
+    return [SystemProgram.transfer({ fromPubkey: from, toPubkey: to, lamports: Number(lamports) })];
+  }
+
+  // Close an emptied token account back to its owner, reclaiming the rent.
+  // Returns [] when the account doesn't exist, so a drain is re-entrant.
+  async closeAtaIxs(owner: PublicKey, mint: PublicKey): Promise<TransactionInstruction[]> {
+    const program = this.tokenProgramFor(mint);
+    const ata = getAssociatedTokenAddressSync(mint, owner, true, program);
+    if (!(await this.conn.getAccountInfo(ata))) return [];
+    return [createCloseAccountInstruction(ata, owner, owner, [], program)];
+  }
+
   transferIxs(from: PublicKey, mint: PublicKey, items: { owner: string; amount: bigint }[]): TransactionInstruction[] {
     const program = this.tokenProgramFor(mint);
     const src = getAssociatedTokenAddressSync(mint, from, true, program);
@@ -259,6 +310,12 @@ export class Chain {
         createTransferCheckedInstruction(src, mint, dst, from, amount, DECIMALS, [], program),
       ];
     });
+  }
+
+  // Destroys `amount` of the coin from the owner's account: total supply drops on-chain.
+  burnIxs(owner: PublicKey, amount: bigint): TransactionInstruction[] {
+    const ata = getAssociatedTokenAddressSync(this.cfg.mint, owner, true, TOKEN_2022_PROGRAM_ID);
+    return [createBurnCheckedInstruction(ata, this.cfg.mint, owner, amount, DECIMALS, [], TOKEN_2022_PROGRAM_ID)];
   }
 
   // ---- sending ----

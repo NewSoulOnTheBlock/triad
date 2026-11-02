@@ -1,0 +1,11 @@
+bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+engine up — mint 7rkqDbQgTtvqJg4Q5z3BS4pDZgZdXx7gysENetRppump quote pumpCmXqMfrsAkQ5r49WcJnRayYRqmXz6ae8H7H9Dfn [DRY RUN]
+dashboard on http://localhost:8788
+2026-10-28T18:59:21.386Z [claim] nothing new to split (dry run)
+2026-10-28T18:59:54.157Z [holders] failed: failed to get transactions: Transaction version (1) is not supported by the requesting client. Please try the request again with the following configuration parameter: "maxSupportedTransactionVersion": 1
+2026-10-28T19:00:24.255Z [holders] failed: failed to get transactions: Transaction version (1) is not supported by the requesting client. Please try the request again with the following configuration parameter: "maxSupportedTransactionVersion": 1
+2026-10-28T19:00:54.584Z [holders] failed: failed to get transactions: Transaction version (1) is not supported by the requesting client. Please try the request again with the following configuration parameter: "maxSupportedTransactionVersion": 1
+2026-10-28T19:01:24.910Z [holders] failed: failed to get transactions: Transaction version (1) is not supported by the requesting client. Please try the request again with the following configuration parameter: "maxSupportedTransactionVersion": 1
+2026-10-28T19:01:54.727Z [holders] failed: failed to get transactions: Transaction version (1) is not supported by the requesting client. Please try the request again with the following configuration parameter: "maxSupportedTransactionVersion": 1
+2026-10-28T19:02:25.010Z [holders] failed: failed to get transactions: Transaction version (1) is not supported by the requesting client. Please try the request again with the following configuration parameter: "maxSupportedTransactionVersion": 1
+2026-10-28T19:02:54.609Z [holders] failed: failed to get transactions: Transaction version (1) is not supported by the requesting client. Please try the request again with the following configuration parameter: "maxSupportedTransactionVersion": 1
