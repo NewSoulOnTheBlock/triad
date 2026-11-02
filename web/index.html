@@ -105,6 +105,17 @@
   .pill.live { color: var(--lime); border-color: rgba(var(--lime-rgb),.55); background: rgba(var(--lime-rgb),.08); }
   .pill.bad  { color: var(--red);  border-color: rgba(var(--red-rgb),.55);  background: rgba(var(--red-rgb),.09); }
 
+  /* ---- community links ---- */
+  .social { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+  .social a { --acc-rgb: var(--cyan-rgb); border-bottom: 0; text-decoration: none;
+              font: 600 12px var(--ff); letter-spacing: .08em; text-transform: uppercase; color: var(--steel);
+              padding: 8px 20px; background: rgba(var(--acc-rgb),.1); border: 1px solid rgba(var(--acc-rgb),.5);
+              clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+              transition: background .15s, box-shadow .15s, color .15s, border-color .15s; }
+  .social a:hover { color: #fff; background: rgba(var(--acc-rgb),.22);
+                    border-color: rgba(var(--acc-rgb),.85); box-shadow: 0 0 22px -6px rgba(var(--acc-rgb),.75); }
+  .social a.x { --acc-rgb: var(--violet-rgb); }
+
   .banner { --acc-rgb: var(--gold-rgb); position: relative; display: none; margin-bottom: 16px; padding: 11px 16px 11px 18px;
             font-size: 13px; color: #ffd98a; letter-spacing: .01em;
             background: linear-gradient(90deg, rgba(var(--gold-rgb),.16), rgba(var(--gold-rgb),.03) 70%), rgba(8,11,18,.8);
@@ -288,6 +299,10 @@
       <span class="pill" id="updated">—</span>
       <span class="pill" id="queue" style="display:none"></span>
     </div>
+    <nav class="social" aria-label="Community links">
+      <a class="tg" href="https://t.me/supermechanopumperbot777" target="_blank" rel="noopener">Telegram</a>
+      <a class="x" href="https://x.com/peoplespump" target="_blank" rel="noopener">X · Twitter</a>
+    </nav>
   </header>
   <div class="banner" id="banner"></div>
 
