@@ -61,6 +61,23 @@ export class FakeChain {
   async blockHeight() { return this.height; }
   async sigOutcomes(sigs: string[]) { return new Map(sigs.map((s) => [s, this.landed.get(s) ?? ("unknown" as const)])); }
 
+  /** lamports of SOL obtained per 1 base unit of $PUMP sold, for the gas station */
+  gasRate = 1;
+  // Mirror the real ExactOut gas swap: top the wallet up to targetLamports by
+  // selling just enough $PUMP, or skip (null) if it has none / can't cover it all.
+  async topUpSolFromQuote(wallet: Keypair, targetLamports: number): Promise<string | null> {
+    const owner = wallet.publicKey.toBase58();
+    const deficit = targetLamports - Number(this.sols.get(owner) ?? 0n);
+    if (deficit <= 0) return null;
+    const qbal = this.bal(owner, this.quoteMint);
+    if (qbal <= 0n) return null;
+    const quoteNeeded = BigInt(Math.ceil(deficit / this.gasRate));
+    if (quoteNeeded > qbal) return null; // ExactOut can't be covered: skip
+    this.add(owner, this.quoteMint, -quoteNeeded);
+    this.addSol(owner, BigInt(deficit));
+    return `gas${++this.n}`;
+  }
+
   // ---- builders ----
   async claimIxs() { return [{ kind: "claim" }] as any[]; }
   async buyIxs(user: PublicKey, quote: bigint) { return [{ kind: "buy", user: user.toBase58(), quote }] as any[]; }

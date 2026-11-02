@@ -53,6 +53,7 @@ beforeEach(async () => {
     dryRun: false, mint: new PublicKey(MINT), quoteMint: new PublicKey(QUOTE), devWallet: dev.publicKey,
     launchTime: Date.now(), treasury, volumeWallet: buyer, botWallet: bot, airdropWallet: air,
     tickMs: 1000, claimEveryMs: 0, minSolLamports: 0, failBackoffMs: 0, priorityMicroLamports: 0,
+    gasMinLamports: 0, gasTargetLamports: 0, // gas station off by default (0 >= 0 skips); a test raises these to exercise it
     volume: { everyMs: 1, timingJitter: 0, cyclesPerWallet: 2, fundPct: 1, fundJitter: 0, minQuote: 10n ** 30n, maxImpactPct: 1, subSolLamports: 1_000_000, slippagePct: 5 }, // off unless a test lowers minQuote
     bot: {
       tranches: DEFAULT_TRANCHES, rearmGap: 0.1, topStepPct: 0.5, sellFraction: 0.5, minSellPremium: 0.1, maxImpactPct: 0.02,
@@ -310,5 +311,35 @@ describe("price stabilizer", () => {
     expect(fake.bal(addr(bot), QUOTE)).toBe(10_000n - 3n * cap);
     const s = await db.loadState(sql);
     expect(s.bot.order?.remaining).toBe(10_000n - 3n * cap); // the order survives a save/load round trip
+  });
+});
+
+describe("gas station", () => {
+  beforeEach(() => {
+    cfg.gasMinLamports = 20_000_000; // 0.02 SOL floor
+    cfg.gasTargetLamports = 50_000_000; // 0.05 SOL target
+  });
+
+  it("sells a low wallet's $PUMP for SOL up to the target", async () => {
+    fake.addSol(addr(buyer), 10_000_000n); // 0.01 SOL: below the floor
+    fake.add(addr(buyer), QUOTE, 1_000_000_000n); // has $PUMP to sell
+    await engine().tick();
+    // topped to the target; the 0.04 SOL deficit was paid in $PUMP (rate 1)
+    expect(await fake.solBalance(buyer.publicKey)).toBe(50_000_000);
+    expect(fake.bal(addr(buyer), QUOTE)).toBe(1_000_000_000n - 40_000_000n);
+  });
+
+  it("leaves a wallet already above the floor untouched", async () => {
+    fake.addSol(addr(air), 60_000_000n); // above floor and target
+    fake.add(addr(air), QUOTE, 500_000_000n);
+    await engine().tick();
+    expect(await fake.solBalance(air.publicKey)).toBe(60_000_000);
+    expect(fake.bal(addr(air), QUOTE)).toBe(500_000_000n); // nothing sold
+  });
+
+  it("does nothing when a low wallet holds no $PUMP", async () => {
+    fake.addSol(addr(bot), 5_000_000n); // below the floor, but no $PUMP to sell
+    await engine().tick();
+    expect(await fake.solBalance(bot.publicKey)).toBe(5_000_000); // unchanged
   });
 });

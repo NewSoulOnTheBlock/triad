@@ -52,6 +52,11 @@ export function loadConfig() {
     tickMs: num("TICK_MS", 30_000),
     claimEveryMs: num("CLAIM_EVERY_MS", 10 * 60_000),
     minSolLamports: num("MIN_SOL_LAMPORTS", 5_000_000), // below this a wallet stops sending (0.005 SOL)
+    // Gas station: when an engine wallet drops below gasMinLamports, it sells a
+    // little of its $PUMP for SOL (via Jupiter) back up to gasTargetLamports, so
+    // the engine self-funds its gas from the fees it holds.
+    gasMinLamports: num("GAS_MIN_LAMPORTS", 20_000_000), // 0.02 SOL
+    gasTargetLamports: num("GAS_TARGET_LAMPORTS", 50_000_000), // 0.05 SOL
     failBackoffMs: num("FAIL_BACKOFF_MS", 5 * 60_000), // a failed money step sits out this long
 
     volume: {

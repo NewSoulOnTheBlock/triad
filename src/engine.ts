@@ -34,6 +34,7 @@ export class Engine {
       for (const k of this.wallets())
         this.gas.set(k.publicKey.toBase58(), await this.chain.solBalance(k.publicKey));
     });
+    await this.step("gas-refill", () => this.gasStation());
     const holders = await this.step("holders", () => this.trackHolders(state, now));
     const market = await this.step("price", () => this.samplePrice());
 
@@ -55,6 +56,28 @@ export class Engine {
     } catch (e) {
       log(`[${name}] failed:`, (e as Error).message);
       return null;
+    }
+  }
+
+  // Keep every engine wallet in gas by selling a little of the $PUMP it holds:
+  // any wallet below gasMinLamports is topped back up to gasTargetLamports, so
+  // the buckets never stall waiting for a manual SOL deposit. Runs as a plain
+  // step (not gas-guarded) using the wallet's own residual SOL for the swap fee.
+  private async gasStation() {
+    if (this.cfg.dryRun) return;
+    for (const w of this.wallets()) {
+      const pk = w.publicKey;
+      if ((this.gas.get(pk.toBase58()) ?? 0) >= this.cfg.gasMinLamports) continue;
+      if ((await this.chain.quoteBalance(pk)) <= 0n) continue; // no $PUMP to sell
+      try {
+        const sig = await this.chain.topUpSolFromQuote(w, this.cfg.gasTargetLamports);
+        if (sig) {
+          this.gas.set(pk.toBase58(), await this.chain.solBalance(pk));
+          log(`[gas] ${pk.toBase58().slice(0, 6)} sold $PUMP for SOL ${sig}`);
+        }
+      } catch (e) {
+        log(`[gas] ${pk.toBase58().slice(0, 6)} top-up failed: ${(e as Error).message}`);
+      }
     }
   }
 

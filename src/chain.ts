@@ -14,6 +14,7 @@ import {
   SystemProgram,
   Transaction,
   TransactionInstruction,
+  VersionedTransaction,
 } from "@solana/web3.js";
 import {
   TOKEN_2022_PROGRAM_ID,
@@ -339,6 +340,37 @@ export class Chain {
     const res = await this.conn.confirmTransaction({ signature: p.sig, blockhash: p.blockhash, lastValidBlockHeight: p.lastValidBlockHeight }, "confirmed");
     if (res.value.err) throw new Error(`transaction failed: ${JSON.stringify(res.value.err)}`);
     return p.sig;
+  }
+
+  // Gas station: sell this wallet's $PUMP for native SOL (via Jupiter) until it
+  // holds about `targetLamports`, so engine wallets self-fund their gas from the
+  // fees they already hold instead of needing manual SOL top-ups. Returns the
+  // signature, or null when nothing needs selling / there's no $PUMP / no route.
+  async topUpSolFromQuote(wallet: Keypair, targetLamports: number): Promise<string | null> {
+    const have = await this.conn.getBalance(wallet.publicKey, "confirmed");
+    const deficit = targetLamports - have;
+    if (deficit <= 0) return null;
+    const qbal = await this.quoteBalance(wallet.publicKey);
+    if (qbal <= 0n) return null;
+    const SOL = "So11111111111111111111111111111111111111112";
+    const inMint = this.cfg.quoteMint.toBase58();
+    const base = "https://lite-api.jup.ag/swap/v1";
+    // ExactOut: ask for `deficit` lamports of SOL out; Jupiter sizes the $PUMP in.
+    const quote: any = await (await fetch(`${base}/quote?inputMint=${inMint}&outputMint=${SOL}&amount=${deficit}&swapMode=ExactOut&slippageBps=300`)).json();
+    if (!quote || quote.error || !quote.inAmount) return null;
+    if (BigInt(quote.inAmount) > qbal) return null; // not enough $PUMP to cover this much gas: skip
+    const swap: any = await (await fetch(`${base}/swap`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ quoteResponse: quote, userPublicKey: wallet.publicKey.toBase58(), wrapAndUnwrapSol: true, dynamicComputeUnitLimit: true }),
+    })).json();
+    if (!swap || !swap.swapTransaction) return null;
+    const tx = VersionedTransaction.deserialize(Buffer.from(swap.swapTransaction, "base64"));
+    tx.sign([wallet]);
+    const sim = await this.conn.simulateTransaction(tx, { sigVerify: false, replaceRecentBlockhash: false });
+    if (sim.value.err) throw new Error(`gas swap simulation failed: ${JSON.stringify(sim.value.err)}`);
+    const sig = await this.conn.sendRawTransaction(Buffer.from(tx.serialize()), { skipPreflight: true, maxRetries: 5 });
+    await this.conn.confirmTransaction({ signature: sig, blockhash: tx.message.recentBlockhash, lastValidBlockHeight: swap.lastValidBlockHeight }, "confirmed");
+    return sig;
   }
 
   // Did these signatures land? "landed" / "failed" / "unknown" (still in
