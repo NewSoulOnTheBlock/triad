@@ -140,6 +140,23 @@ export class Engine {
     if (!this.cfg.dryRun) sig = await this.chain.submit(await this.chain.prepare(await this.chain.claimIxs(), this.cfg.treasury));
     state.lastClaimAt = now;
 
+    // The treasury has no bucket to sell from later, and it is the wallet that
+    // pays for every claim — so if it is low on gas, convert a little of the
+    // fees it just claimed into SOL now, before splitting the rest. This is the
+    // only moment the treasury holds quote; without it the claim path can starve
+    // itself of gas and stall. Best-effort: a failure just leaves the gas for
+    // the next claim, and the split proceeds on whatever remains.
+    if (!this.cfg.dryRun) {
+      try {
+        if ((await this.chain.solBalance(this.cfg.treasury.publicKey)) < this.cfg.gasMinLamports) {
+          const gsig = await this.chain.topUpSolFromQuote(this.cfg.treasury, this.cfg.gasTargetLamports);
+          if (gsig) log(`[claim] treasury gas top-up ${gsig}`);
+        }
+      } catch (e) {
+        log(`[claim] treasury gas top-up failed: ${(e as Error).message}`);
+      }
+    }
+
     const t = this.cfg.treasury.publicKey.toBase58();
     const balance = await this.chain.quoteBalance(this.cfg.treasury.publicKey);
     const unallocated = balance - (await db.owed(this.sql, t, this.quote));

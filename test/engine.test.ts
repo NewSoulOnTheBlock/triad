@@ -114,6 +114,33 @@ describe("fee split", () => {
     expect(fake.bal(addr(bot), QUOTE)).toBe(334n);
     expect(fake.bal(addr(treasury), QUOTE)).toBe(0n);
   });
+
+  it("gasses a low treasury from the claim before splitting (it has no bucket to sell)", async () => {
+    cfg.gasMinLamports = 20_000_000; // 0.02 SOL floor
+    cfg.gasTargetLamports = 50_000_000; // 0.05 SOL target
+    fake.addSol(addr(treasury), 10_000_000n); // 0.01 SOL: below the floor
+    fake.pendingFees = 90_000_000n;
+    await engine().tick();
+    // topped to target: the 0.04 SOL deficit was bought with 40,000,000 of the claimed quote
+    expect(await fake.solBalance(treasury.publicKey)).toBe(50_000_000);
+    // only what remains after the gas top-up is split three ways
+    const third = (90_000_000n - 40_000_000n) / 3n; // 16,666,666
+    expect(fake.bal(addr(buyer), QUOTE)).toBe(third);
+    expect(fake.bal(addr(bot), QUOTE)).toBe(third);
+    expect(fake.bal(addr(air), QUOTE)).toBe(third);
+  });
+
+  it("leaves the split untouched when the treasury already has gas", async () => {
+    cfg.gasMinLamports = 20_000_000;
+    cfg.gasTargetLamports = 50_000_000;
+    fake.addSol(addr(treasury), 60_000_000n); // above the floor: no top-up
+    fake.pendingFees = 900n;
+    await engine().tick();
+    expect(await fake.solBalance(treasury.publicKey)).toBe(60_000_000); // unchanged
+    expect(fake.bal(addr(buyer), QUOTE)).toBe(300n); // full 1/1/1 split
+    expect(fake.bal(addr(bot), QUOTE)).toBe(300n);
+    expect(fake.bal(addr(air), QUOTE)).toBe(300n);
+  });
 });
 
 describe("payout ledger", () => {
