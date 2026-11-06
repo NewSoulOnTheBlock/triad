@@ -301,14 +301,9 @@
       <span class="pill" id="queue" style="display:none"></span>
     </div>
     <nav class="social" aria-label="Community links">
-      <a class="tg" href="https://t.me/supermechanopumperbot777" target="_blank" rel="noopener">Telegram</a>
-      <a class="x" href="https://x.com/peoplespump" target="_blank" rel="noopener">X · Twitter</a>
+      <a class="tg" href="https://t.me/thiccatgirlcult" target="_blank" rel="noopener">Telegram</a>
+      <a class="x" href="https://x.com/ThicCatgirlcult" target="_blank" rel="noopener">X · Twitter</a>
     </nav>
-    <div class="ca" id="ca" role="button" tabindex="0" aria-label="Copy contract address" title="Click to copy the contract address">
-      <span class="ca-k">CA</span>
-      <span class="ca-v mono">C3KUZkWKP7kASoMytv6pTF11p7eT27sgbuAKQKcWpump</span>
-      <span class="ca-copy" id="caCopy">Copy</span>
-    </div>
   </header>
   <div class="banner" id="banner"></div>
 
@@ -555,20 +550,6 @@ $("lookup").addEventListener("submit", async (e) => {
 
 load();
 setInterval(load, 10_000);
-
-// Contract address: click (or Enter/Space) to copy.
-(function () {
-  const ca = document.getElementById("ca");
-  if (!ca) return;
-  const addr = "C3KUZkWKP7kASoMytv6pTF11p7eT27sgbuAKQKcWpump";
-  const copy = () => {
-    const done = () => { const c = document.getElementById("caCopy"); if (c) { c.textContent = "Copied"; setTimeout(() => (c.textContent = "Copy"), 1400); } };
-    if (navigator.clipboard) navigator.clipboard.writeText(addr).then(done).catch(() => {});
-    else done();
-  };
-  ca.addEventListener("click", copy);
-  ca.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); copy(); } });
-})();
 </script>
 </body>
 </html>
