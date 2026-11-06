@@ -347,7 +347,7 @@
       <div class="rule" aria-hidden="true"><i class="gl g-barc"></i></div>
       <p class="sub" id="volSub">—</p>
       <dl class="kv" id="volkv"></dl>
-      <div class="scroll"><table class="tbl"><thead><tr><th></th><th class="r">$PUMP</th><th class="r">Sub</th><th class="r">Price</th><th class="r">When</th></tr></thead><tbody id="cycles"></tbody></table></div>
+      <div class="scroll"><table class="tbl"><thead><tr><th></th><th class="r">$ABTC</th><th class="r">Sub</th><th class="r">Price</th><th class="r">When</th></tr></thead><tbody id="cycles"></tbody></table></div>
     </section>
 
     <section class="mod plate m2">
@@ -361,7 +361,7 @@
       <svg class="spark" id="spark" viewBox="0 0 300 72" preserveAspectRatio="none" role="img" aria-label="24h price"></svg>
       <dl class="kv" id="botkv"></dl>
       <h3>Buys &amp; sells</h3>
-      <div class="scroll"><table class="tbl"><thead><tr><th>Side</th><th class="r">$PUMP</th><th class="r">Tokens</th><th class="r">Price</th><th>Why</th><th class="r">When</th></tr></thead><tbody id="trades"></tbody></table></div>
+      <div class="scroll"><table class="tbl"><thead><tr><th>Side</th><th class="r">$ABTC</th><th class="r">Tokens</th><th class="r">Price</th><th>Why</th><th class="r">When</th></tr></thead><tbody id="trades"></tbody></table></div>
     </section>
 
     <section class="mod plate m3">
@@ -376,7 +376,7 @@
       <dl class="kv" id="lookupOut" style="display:none"></dl>
       <div class="scroll"><table class="tbl"><thead><tr><th>Wallet</th><th class="r">Held</th><th class="r">Mult</th><th class="r">Counted</th><th class="r">Share</th></tr></thead><tbody id="eligible"></tbody></table></div>
       <h3>Fee airdrop rounds</h3>
-      <div class="scroll" style="max-height:220px"><table class="tbl"><thead><tr><th>#</th><th class="r">Fees ($PUMP)</th><th class="r">Airdropped</th><th>Delivered</th><th class="r">When</th></tr></thead><tbody id="airdrops"></tbody></table></div>
+      <div class="scroll" style="max-height:220px"><table class="tbl"><thead><tr><th>#</th><th class="r">Fees ($ABTC)</th><th class="r">Airdropped</th><th>Delivered</th><th class="r">When</th></tr></thead><tbody id="airdrops"></tbody></table></div>
     </section>
   </div>
 
@@ -453,18 +453,18 @@ async function load() {
   const m = o.market || {};
   const V = o.volume || {};
   $("mcap").textContent = usd(m.mcapUsd);
-  $("venue").textContent = m.venue ? `${m.venue === "pool" ? "PumpSwap pool" : "bonding curve"} · $PUMP $${(m.quoteUsd || 0).toFixed(5)}` : "—";
+  $("venue").textContent = m.venue ? `${m.venue === "pool" ? "PumpSwap pool" : "bonding curve"} · $ABTC $${(m.quoteUsd || 0).toFixed(5)}` : "—";
   $("volPrinted").textContent = fmt(units(V.volume));
-  $("volPrintedSub").textContent = `$PUMP of two-sided volume · ${V.cycles || 0} cycles · ${V.activeSubs || 0} live wallets`;
+  $("volPrintedSub").textContent = `$ABTC of two-sided volume · ${V.cycles || 0} cycles · ${V.activeSubs || 0} live wallets`;
   $("volq").textContent = fmt(units(V.quote));
-  $("volnext").textContent = V.nextCycleAt && V.nextCycleAt > Date.now() ? `$PUMP ready · next cycle in ~${dur(V.nextCycleAt - Date.now())}` : `$PUMP ready · a cycle every ~${dur(V.everyMs || 0)}`;
+  $("volnext").textContent = V.nextCycleAt && V.nextCycleAt > Date.now() ? `$ABTC ready · next cycle in ~${dur(V.nextCycleAt - Date.now())}` : `$ABTC ready · a cycle every ~${dur(V.everyMs || 0)}`;
   $("botq").textContent = fmt(units(o.bot?.quote));
-  $("bott").textContent = `$PUMP ready · ${fmt(units(o.bot?.tokens))} tokens held`;
+  $("bott").textContent = `$ABTC ready · ${fmt(units(o.bot?.tokens))} tokens held`;
   $("adq").textContent = fmt(units(o.airdrop?.quote));
   const firstRound = (o.launchTime || 0) + (o.airdrop?.minAgeMs || 3_600_000);
   $("adnext").textContent = Date.now() < firstRound
     ? `accruing · first round in ${dur(firstRound - Date.now())}`
-    : o.airdrop?.lastAt ? `last round ${ago(o.airdrop.lastAt)} ago · every ${dur(o.airdrop.everyMs)}` : `$PUMP ready · rounds every ${dur(o.airdrop?.everyMs || 0)}`;
+    : o.airdrop?.lastAt ? `last round ${ago(o.airdrop.lastAt)} ago · every ${dur(o.airdrop.everyMs)}` : `$ABTC ready · rounds every ${dur(o.airdrop?.everyMs || 0)}`;
 
   // 1 — volume bot
   $("volSub").innerHTML = `Prints two-sided volume through rotating throwaway wallets. Each is funded from the bucket, runs <b>${V.cyclesPerWallet || 0}</b> atomic buy+sell cycles ` +
@@ -472,7 +472,7 @@ async function load() {
     `no single buy moves price more than ${((V.maxImpactPct || 0) * 100).toFixed(1)}%.`;
   $("volkv").innerHTML = `
     <dt>Wallet</dt><dd>${acct(o.wallets?.volumeWallet?.address)}</dd>
-    <dt>Volume printed</dt><dd>${fmt(units(V.volume))} $PUMP over ${V.cycles || 0} cycles</dd>
+    <dt>Volume printed</dt><dd>${fmt(units(V.volume))} $ABTC over ${V.cycles || 0} cycles</dd>
     <dt>Active sub</dt><dd>${V.activeSub ? `${acct(V.activeSub)} · cycle ${V.cyclesDone || 0}/${V.cyclesPerWallet || 0}` : "—"}</dd>`;
   const st = (x) => (x.status === "failed" ? ' <span class="tag fail">FAILED</span>' : x.status === "sent" ? ' <span class="tag q">PENDING</span>' : "");
   $("cycles").innerHTML = (s.cycles || []).length
@@ -489,12 +489,12 @@ async function load() {
     `Every order is split so no single swap moves price more than ${Math.round((b.maxImpactPct || 0) * 100)}%. It smooths swings; it can't hold a floor.`;
   const total = tr.reduce((a, t) => a + t.weight, 0) || 1;
   const levels = tr.map((t) => `<span class="tag ${t.armed ? "ok" : "q"}">−${Math.round(t.below * 100)}% · ${Math.round((t.weight / total) * 100)}%${t.price ? " @ " + px(t.price) : ""}${t.armed ? "" : " · FIRED"}</span>`).join(" ");
-  const ord = b.order ? `${esc(b.order.side.toUpperCase())} · ${fmt(units(b.order.remaining))} ${b.order.side === "buy" ? "$PUMP" : "tokens"} left` : "none";
+  const ord = b.order ? `${esc(b.order.side.toUpperCase())} · ${fmt(units(b.order.remaining))} ${b.order.side === "buy" ? "$ABTC" : "tokens"} left` : "none";
   const paused = b.pausedUntil && b.pausedUntil > Date.now() ? `paused after a crash, ${dur(b.pausedUntil - Date.now())} left` : null;
   $("botkv").innerHTML = `
     <dt>Wallet</dt><dd>${acct(o.wallets?.botWallet?.address)}</dd>
     <dt>Anchor</dt><dd>${b.anchor ? px(b.anchor) : "—"}</dd>
-    <dt>Average entry</dt><dd>${b.avgEntry ? px(b.avgEntry) + " $PUMP" : "no position"}</dd>
+    <dt>Average entry</dt><dd>${b.avgEntry ? px(b.avgEntry) + " $ABTC" : "no position"}</dd>
     <dt>Buy levels</dt><dd>${levels || "—"}${paused ? ` <span class="tag fail">${paused}</span>` : ""}</dd>
     <dt>Working order</dt><dd>${ord}</dd>
     <dt>Next sell rung</dt><dd>${b.nextSellAt ? `${px(b.nextSellAt)} (rung ${b.ladderStep + 1})` : "—"}</dd>
@@ -507,12 +507,12 @@ async function load() {
   // 3 — airdrop
   const A = o.airdrop || {};
   const tiers = (A.tiers || []).map((t) => `${dur(t.ms)} → ${t.mult}×`).join(" · ");
-  $("adSub").innerHTML = `Post-migration the bucket holds its $PUMP as a Meteora DLMM position on the coin/$PUMP pair and keeps it in range ` +
-    `(it re-centres on the active bin when price leaves the position${A.pool ? `, pool <code>${acct(A.pool)}</code>` : ""}). The $PUMP is LP <b>principal</b>; the position's ` +
-    `<b>earned fees</b> are claimed, converted to $PUMP, and tithed back each round to the faithful holding 1h+, weighted by ` +
+  $("adSub").innerHTML = `Post-migration the bucket holds its $ABTC as a Meteora DLMM position on the coin/$ABTC pair and keeps it in range ` +
+    `(it re-centres on the active bin when price leaves the position${A.pool ? `, pool <code>${acct(A.pool)}</code>` : ""}). The $ABTC is LP <b>principal</b>; the position's ` +
+    `<b>earned fees</b> are claimed, converted to $ABTC, and tithed back each round to the faithful holding 1h+, weighted by ` +
     `<b>lowest balance held this round × loyalty multiplier</b>${tiers ? ` (${tiers})` : ""}. Selling or sending out <b>any</b> amount resets the multiplier to zero. Dev included, engine wallets excluded. ` +
     `${s.airdropEligibleCount} eligible now, ${s.airdropPendingCount} still too new.` +
-    (A.nextAt ? ` Next round in ~${dur(A.nextAt - Date.now())}; ${fmt(units(A.pot))} $PUMP of fees pooled for it so far.` : "");
+    (A.nextAt ? ` Next round in ~${dur(A.nextAt - Date.now())}; ${fmt(units(A.pot))} $ABTC of fees pooled for it so far.` : "");
   $("eligible").innerHTML = s.airdropEligible.length ? s.airdropEligible.map((h) =>
     `<tr><td>${acct(h.owner)} ${h.isDev ? '<span class="tag dev">DEV</span>' : ""}</td><td class="r">${ago(h.since)}</td><td class="r mono">${h.mult.toFixed(2)}×</td>` +
     `<td class="r mono">${fmt(units(h.counted))}</td><td class="r mono">${h.sharePct.toFixed(2)}%</td></tr>`).join("")
